@@ -701,27 +701,28 @@ window.mobileAddPin=function(){
 
 window.submitPinSheet=function(){
   if(editingPinId){
-    // EDIT MODE: update existing pin
     const pin=pins.find(p=>p.id===editingPinId);
     if(!pin){editingPinId=null;closeSheet();return;}
     const f=collectPinForm('s');
     Object.assign(pin,f);
-    // refresh marker icon and popup
-    if(markers[pin.id]){
-      markers[pin.id].setIcon(mkIcon(pin));
-      markers[pin.id].setPopupContent(mkPopup(pin));
-    }
-    // Update Firebase
+    // アイコンだけ更新（popupは廃止済み）
+    if(markers[pin.id]) markers[pin.id].setIcon(mkIcon(pin));
+    // Firebase更新
     const pinData={...f, lat:pin.latlng?pin.latlng.lat:pin.lat, lng:pin.latlng?pin.latlng.lng:pin.lng, id:pin.id};
     db.ref('pins/'+pin.id).set(pinData);
+    const savedId=editingPinId;
     editingPinId=null;
     resetPinForm('s');
-    closeSheet();
+    // シートを閉じる（closeSheetのwasEditing処理を避けるためeditingPinIdをクリア後）
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('sheet-pin').classList.remove('show');
+    document.getElementById('sheet-pin-title').textContent='📍 ピンを追加';
+    document.getElementById('sheet-pin-submit').textContent='📍 このピンを追加する';
     renderList();updateStats();
-    // refresh panel if open
-    if(activePinId===pin.id) openPinPanel(pin.id);
+    // パネルを再表示
+    activePinId=savedId;
+    openPinPanel(savedId);
   } else {
-    // ADD MODE
     if(!pendingLL)return;
     createPin(collectPinForm('s'),pendingLL);
     resetPinForm('s');
