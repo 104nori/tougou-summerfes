@@ -781,14 +781,24 @@ function addMarkerToMap(pin){
     db.ref('pins/'+pin.id).update({lat:ll.lat, lng:ll.lng});
   });
   m.on('dragstart',()=>m.closePopup());
-  // ポップアップが開いた時にボタンを直接バインド
+  // popupopenのたびにボタンをバインド（重複しないよう毎回付け直す）
   m.on('popupopen',()=>{
-    const el=m.getPopup().getElement();
-    if(!el) return;
-    const editBtn=el.querySelector('.popup-edit-btn');
-    const delBtn=el.querySelector('.popup-del-btn');
-    if(editBtn) editBtn.addEventListener('click',()=>window.editPin(pin.id));
-    if(delBtn)  delBtn.addEventListener('click',()=>window.delPin(pin.id));
+    setTimeout(()=>{
+      const el=m.getPopup()&&m.getPopup().getElement();
+      if(!el) return;
+      const editBtn=el.querySelector('.popup-edit-btn');
+      const delBtn=el.querySelector('.popup-del-btn');
+      if(editBtn){
+        const newEdit=editBtn.cloneNode(true);
+        editBtn.parentNode.replaceChild(newEdit,editBtn);
+        newEdit.addEventListener('click',()=>window.editPin(pin.id));
+      }
+      if(delBtn){
+        const newDel=delBtn.cloneNode(true);
+        delBtn.parentNode.replaceChild(newDel,delBtn);
+        newDel.addEventListener('click',()=>window.delPin(pin.id));
+      }
+    },50);
   });
   markers[pin.id]=m;
 }
@@ -1140,7 +1150,6 @@ db.ref('pins').on('value', snap=>{
   pins=[];
   const data=snap.val()||{};
   Object.values(data).forEach(pinData=>{
-    // Firebase はオブジェクトで返すことがあるので配列に正規化
     const bans=pinData.bans
       ? (Array.isArray(pinData.bans) ? pinData.bans : Object.values(pinData.bans))
       : [];
