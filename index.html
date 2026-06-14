@@ -324,6 +324,27 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
       <button class="btn-fab" id="btn-open-form" disabled onclick="openSheet('pin')">ピン追加＋</button>
     </div>
     <div id="map"></div>
+    <!-- Pin detail panel (shown when pin is tapped) -->
+    <div id="pin-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:1000;
+      background:white;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.2);
+      padding:14px 16px 24px;max-height:60vh;overflow-y:auto">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px"></div>
+      <div id="pin-panel-content"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="panelEditPin()" style="flex:1;padding:11px;background:var(--indigo);color:white;
+          border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+          ✏️ 編集
+        </button>
+        <button onclick="panelDelPin()" style="flex:1;padding:11px;background:#ffeaea;color:var(--danger);
+          border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+          🗑️ 削除
+        </button>
+        <button onclick="closePinPanel()" style="padding:11px 14px;background:var(--bg);color:var(--muted);
+          border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit">
+          ✕
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ══ LIST VIEW ══ -->
@@ -688,6 +709,8 @@ window.submitPinSheet=function(){
     resetPinForm('s');
     closeSheet();
     renderList();updateStats();
+    // refresh panel if open
+    if(activePinId===pin.id) openPinPanel(pin.id);
   } else {
     // ADD MODE
     if(!pendingLL)return;
@@ -768,38 +791,70 @@ function createPin(f,latlng){
   renderList();updateStats();
 }
 
+let activePinId=null;
+
+function openPinPanel(id){
+  activePinId=id;
+  const pin=pins.find(p=>p.id===id);
+  if(!pin) return;
+  const pm=PRIO[pin.prio];
+  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
+  const bansHtml=safeBans.length
+    ?safeBans.map(k=>`<span style="display:inline-block;background:#ffeaea;color:var(--danger);
+      border:1px solid var(--danger);border-radius:4px;padding:1px 6px;font-size:12px;font-weight:700;margin:2px">
+      🚫 ${TURN_LABELS[k]}</span>`).join(' ')
+    :'<span style="color:var(--safe)">✅ 禁止なし</span>';
+  document.getElementById('pin-panel-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:14px;height:14px;border-radius:50%;background:${pin.color};border:2px solid rgba(0,0,0,.15)"></div>
+      <div style="font-size:16px;font-weight:800">${pin.name}</div>
+      <span style="margin-left:auto;font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px;
+        background:${pm.pb==='pb1'?'var(--p1-bg)':pm.pb==='pb2'?'var(--p2-bg)':'var(--p3-bg)'};
+        color:${pm.pb==='pb1'?'var(--p1-t)':pm.pb==='pb2'?'var(--p2-t)':'var(--p3-t)'}">
+        ${pm.l}</span>
+    </div>
+    <div style="font-size:13px;line-height:2">${bansHtml}</div>
+    ${pin.ok?`<div style="font-size:13px;color:var(--safe);margin-top:4px">🟢 ${pin.ok}</div>`:''}
+    ${pin.lane?`<div style="font-size:13px;margin-top:4px">📍 ${pin.lane}</div>`:''}
+    ${pin.face?`<div style="font-size:13px;margin-top:4px">🧭 ${{北:'⬆️',南:'⬇️',東:'➡️',西:'⬅️'}[pin.face]} ${pin.face}向き</div>`:''}
+    ${pin.start?`<div style="font-size:13px;color:#c04000;font-weight:700;margin-top:4px">🔒 開始：${pin.start}</div>`:''}
+    ${pin.release?`<div style="font-size:13px;color:var(--safe);margin-top:4px">🔓 解除：${pin.release}</div>`:''}
+    ${pin.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px">📝 ${pin.note}</div>`:''}
+  `;
+  document.getElementById('pin-panel').style.display='block';
+}
+
+window.closePinPanel=function(){
+  document.getElementById('pin-panel').style.display='none';
+  activePinId=null;
+};
+
+window.panelEditPin=function(){
+  if(!activePinId) return;
+  closePinPanel();
+  window.editPin(activePinId);
+};
+
+window.panelDelPin=function(){
+  if(!activePinId) return;
+  const id=activePinId;
+  closePinPanel();
+  window.delPin(id);
+};
+
 function addMarkerToMap(pin){
   const latlng=pin.latlng||{lat:pin.lat,lng:pin.lng};
-  const m=L.marker(latlng,{icon:mkIcon(pin),draggable:true})
-    .addTo(map)
-    .bindPopup(mkPopup(pin),{className:'custom-popup',maxWidth:280});
+  const m=L.marker(latlng,{icon:mkIcon(pin),draggable:true}).addTo(map);
+  m.on('click',()=>{
+    if(isMobile()) switchTab('map');
+    openPinPanel(pin.id);
+  });
   m.on('dragend',e=>{
     const ll=e.target.getLatLng();
-    pin.latlng=ll;
-    pin.lat=ll.lat; pin.lng=ll.lng;
-    m.setPopupContent(mkPopup(pin));
+    pin.latlng=ll; pin.lat=ll.lat; pin.lng=ll.lng;
     db.ref('pins/'+pin.id).update({lat:ll.lat, lng:ll.lng});
   });
-  m.on('dragstart',()=>m.closePopup());
-  // popupopenのたびにボタンをバインド（重複しないよう毎回付け直す）
-  m.on('popupopen',()=>{
-    setTimeout(()=>{
-      const el=m.getPopup()&&m.getPopup().getElement();
-      if(!el) return;
-      const editBtn=el.querySelector('.popup-edit-btn');
-      const delBtn=el.querySelector('.popup-del-btn');
-      if(editBtn){
-        const newEdit=editBtn.cloneNode(true);
-        editBtn.parentNode.replaceChild(newEdit,editBtn);
-        newEdit.addEventListener('click',()=>window.editPin(pin.id));
-      }
-      if(delBtn){
-        const newDel=delBtn.cloneNode(true);
-        delBtn.parentNode.replaceChild(newDel,delBtn);
-        newDel.addEventListener('click',()=>window.delPin(pin.id));
-      }
-    },50);
-  });
+  m.on('dragstart',()=>closePinPanel());
   markers[pin.id]=m;
 }
 
@@ -834,27 +889,7 @@ function mkIcon(pin){
   });
 }
 
-/* ══ POPUP ══ */
-function mkPopup(pin){
-  const pm=PRIO[pin.prio];
-  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
-  const bansHtml=safeBans.length?safeBans.map(k=>`<b>🚫 ${TURN_LABELS[k]}</b>`).join('<br>'):'<span class="ok">✅ 禁止なし</span>';
-  const faceHtml=pin.face?`${FACE_ARROW[pin.face]} ${pin.face}向きに立つ`:'未設定';
-  return `<div class="pop-head" style="background:${pin.color}">📍 ${pin.name}<span class="pop-ptag">${pm.l}</span></div>
-    <div class="pop-body">
-      <div class="pop-row">${bansHtml}</div>
-      ${pin.ok?`<div class="pop-row"><span class="ok">🟢 ${pin.ok}</span></div>`:''}
-      ${pin.lane?`<div class="pop-row">📍 <b style="color:var(--indigo)">${pin.lane}</b></div>`:''}
-      <div class="pop-row">🧭 ${faceHtml}</div>
-      ${pin.start?`<div class="pop-row"><b style="color:#c04000">🔒 開始条件：${pin.start}</b></div>`:''}
-      ${pin.release?`<div class="pop-row"><span class="ok">🔓 解除条件：${pin.release}</span></div>`:''}
-      ${pin.note?`<div class="pop-note">📝 ${pin.note}</div>`:''}
-      <div style="display:flex;gap:6px;margin-top:9px">
-        <button class="pop-del popup-edit-btn" style="flex:1">✏️ 編集</button>
-        <button class="pop-del popup-del-btn" style="flex:1">🗑️ 削除</button>
-      </div>
-    </div>`;
-}
+/* ══ POPUP ══ removed - using pin-panel instead */
 
 /* ══ DELETE PIN ══ */
 window.delPin=function(id){
@@ -866,7 +901,7 @@ window.delPin=function(id){
 window.locPin=function(id){
   const pin=pins.find(p=>p.id===id);if(!pin)return;
   if(isMobile())switchTab('map');
-  setTimeout(()=>{map.setView(pin.latlng,18);markers[id]?.openPopup();},isMobile()?60:0);
+  setTimeout(()=>{map.setView(pin.latlng||[pin.lat,pin.lng],18);openPinPanel(id);},isMobile()?60:0);
 };
 
 /* ══ FILTER ══ */
