@@ -1123,6 +1123,41 @@ function redrawAllRoutes(){
   redrawRoute(1);redrawRoute(2);
 }
 
+/* ══ FIREBASE REALTIME LISTENERS ══ */
+db.ref('pins').on('value', snap=>{
+  // 既存マーカーをすべて削除
+  pins.forEach(p=>{if(markers[p.id]){map.removeLayer(markers[p.id]);delete markers[p.id];}});
+  pins=[];
+  const data=snap.val()||{};
+  Object.values(data).forEach(pinData=>{
+    const pin={...pinData, latlng:{lat:pinData.lat, lng:pinData.lng}};
+    pins.push(pin);
+    addMarkerToMap(pin);
+  });
+  renderList();updateStats();
+});
+
+db.ref('routes').on('value', snap=>{
+  // 既存ルートマーカーをすべて削除
+  [1,2].forEach(day=>{
+    routeMarkers[day].forEach(m=>map.removeLayer(m));
+    routeMarkers[day]=[];
+    if(routePolylines[day]){map.removeLayer(routePolylines[day]);routePolylines[day]=null;}
+  });
+  routes={1:[],2:[]};
+  const data=snap.val()||{};
+  [1,2].forEach(day=>{
+    const dayData=data['day'+day]||{};
+    Object.values(dayData).forEach(rpt=>{
+      routes[day].push({...rpt, latlng:{lat:rpt.lat, lng:rpt.lng}});
+    });
+    routes[day].sort((a,b)=>a.id.localeCompare(b.id));
+    redrawRoute(day);
+  });
+  if(isMobile()) renderRouteView();
+  else renderDesktopRoutePanel();
+});
+
 /* ══ INIT ══ */
 if(isMobile()){switchTab('map');}
 else{
