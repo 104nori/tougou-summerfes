@@ -961,7 +961,68 @@ window.locPin=function(id){
   setTimeout(()=>{map.setView(pin.latlng||[pin.lat,pin.lng],18);openPinPanel(id);},isMobile()?60:0);
 };
 
-/* ══ FILTER ══ */
+/* ══ LIST EDIT (リストから編集) ══ */
+window.listEditPin=function(id){
+  const pin=pins.find(p=>p.id===id);
+  if(!pin) return;
+  editingPinId=id;
+  activePinId=id;
+  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
+
+  if(isMobile()){
+    // スマホ：シートを開く
+    document.getElementById('s-name').value=pin.name||'';
+    document.getElementById('s-ok').value=pin.ok||'';
+    document.getElementById('s-start').value=pin.start||'';
+    document.getElementById('s-release').value=pin.release||'';
+    document.getElementById('s-note').value=pin.note||'';
+    document.getElementById('s-lane').value=pin.lane||'';
+    const sp=document.querySelector(`input[name="sprio"][value="${pin.prio}"]`);if(sp)sp.checked=true;
+    const sc=document.querySelector(`input[name="scol"][value="${pin.color}"]`);if(sc)sc.checked=true;
+    document.querySelectorAll('input[name="sface"]').forEach(r=>r.checked=false);
+    if(pin.face){const sf=document.querySelector(`input[name="sface"][value="${pin.face}"]`);if(sf)sf.checked=true;}
+    ['right','left','straight','uright','uleft','enter'].forEach(k=>{const el=document.getElementById('st-'+k);if(el)el.checked=safeBans.includes(k);});
+    document.getElementById('sheet-pin-title').textContent='✏️ ピンを編集';
+    document.getElementById('sheet-pin-submit').textContent='💾 変更を保存する';
+    openSheet('pin');
+  } else {
+    // PC：サイドバーフォームに値を入れる
+    desktopPanel('list');
+    document.getElementById('d-name').value=pin.name||'';
+    document.getElementById('d-ok').value=pin.ok||'';
+    document.getElementById('d-start').value=pin.start||'';
+    document.getElementById('d-release').value=pin.release||'';
+    document.getElementById('d-note').value=pin.note||'';
+    document.getElementById('d-lane').value=pin.lane||'';
+    const dp=document.querySelector(`input[name="dprio"][value="${pin.prio}"]`);if(dp)dp.checked=true;
+    const dc=document.querySelector(`input[name="dcol"][value="${pin.color}"]`);if(dc)dc.checked=true;
+    document.querySelectorAll('input[name="dface"]').forEach(r=>r.checked=false);
+    if(pin.face){const df=document.querySelector(`input[name="dface"][value="${pin.face}"]`);if(df)df.checked=true;}
+    ['right','left','straight','uright','uleft','enter'].forEach(k=>{const el=document.getElementById('dt-'+k);if(el)el.checked=safeBans.includes(k);});
+    const btn=document.getElementById('d-btn-add');
+    btn.disabled=false;
+    btn.textContent='💾 変更を保存する';
+    btn.onclick=function(){
+      const pin2=pins.find(p=>p.id===id);if(!pin2)return;
+      const f=collectPinForm('d');
+      Object.assign(pin2,f);
+      if(markers[pin2.id])markers[pin2.id].setIcon(mkIcon(pin2));
+      const pinData={...f,lat:pin2.latlng?pin2.latlng.lat:pin2.lat,lng:pin2.latlng?pin2.latlng.lng:pin2.lng,id:pin2.id};
+      db.ref('pins/'+pin2.id).set(pinData);
+      editingPinId=null;
+      resetPinForm('d');
+      btn.textContent='地図をクリックして位置を指定';
+      btn.disabled=true;
+      btn.onclick=null;
+      renderList();updateStats();
+    };
+    // フォームまでスクロール
+    document.getElementById('desktop-form').scrollTop=0;
+    document.getElementById('d-name').focus();
+  }
+};
+
+
 window.setFilter=function(val,el){
   activeFilter=val;
   document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
@@ -1002,6 +1063,7 @@ function cardHtml(pin){
       ${pin.note?`<div class="pc-sub">📝 ${pin.note}</div>`:''}
     </div>
     <div class="pc-acts">
+      <button class="bsm" onclick="listEditPin('${pin.id}')">✏️</button>
       <button class="bsm" onclick="locPin('${pin.id}')">🔍</button>
       <button class="bsm bsm-del" onclick="delPin('${pin.id}')">🗑️</button>
     </div>
