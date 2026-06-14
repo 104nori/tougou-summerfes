@@ -327,19 +327,20 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
     <!-- Pin detail panel (shown when pin is tapped) -->
     <div id="pin-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:1000;
       background:white;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.2);
-      padding:14px 16px 24px;max-height:60vh;overflow-y:auto">
+      padding:14px 16px 24px;max-height:60vh;overflow-y:auto"
+      onclick="event.stopPropagation()">
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px"></div>
       <div id="pin-panel-content"></div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="panelEditPin()" style="flex:1;padding:11px;background:var(--indigo);color:white;
+      <div style="display:flex;gap:8px;margin-top:12px" onclick="event.stopPropagation()">
+        <button onclick="event.stopPropagation();panelEditPin()" style="flex:1;padding:11px;background:var(--indigo);color:white;
           border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
           ✏️ 編集
         </button>
-        <button onclick="panelDelPin()" style="flex:1;padding:11px;background:#ffeaea;color:var(--danger);
+        <button onclick="event.stopPropagation();panelDelPin()" style="flex:1;padding:11px;background:#ffeaea;color:var(--danger);
           border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
           🗑️ 削除
         </button>
-        <button onclick="closePinPanel()" style="padding:11px 14px;background:var(--bg);color:var(--muted);
+        <button onclick="event.stopPropagation();closePinPanel()" style="padding:11px 14px;background:var(--bg);color:var(--muted);
           border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit">
           ✕
         </button>
@@ -857,7 +858,8 @@ window.panelDelPin=function(){
 function addMarkerToMap(pin){
   const latlng=pin.latlng||{lat:pin.lat,lng:pin.lng};
   const m=L.marker(latlng,{icon:mkIcon(pin),draggable:true}).addTo(map);
-  m.on('click',()=>{
+  m.on('click',(e)=>{
+    L.DomEvent.stopPropagation(e);
     if(isMobile()) switchTab('map');
     openPinPanel(pin.id);
   });
@@ -1236,6 +1238,7 @@ else{
   // wire map click for desktop pin mode
   map.off('click');
   map.on('click',e=>{
+    // パネルが出ている時は地図クリックでパネルを閉じる（パネル自体のクリックはstopPropagationで除外済み）
     if(document.getElementById('pin-panel').style.display!=='none'){
       closePinPanel(); return;
     }
