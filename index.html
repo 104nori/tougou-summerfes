@@ -843,9 +843,52 @@ window.closePinPanel=function(){
 window.panelEditPin=function(){
   if(!activePinId) return;
   const id=activePinId;
-  // パネルを隠す（シートが開いたら自動で隠れる）
   document.getElementById('pin-panel').style.display='none';
-  window.editPin(id);
+  if(!isMobile()){
+    // PC版：デスクトップフォームに値を流し込む
+    window.editPin(id);
+    // デスクトップフォームにも値をセット
+    const pin=pins.find(p=>p.id===id);
+    if(!pin) return;
+    document.getElementById('d-name').value=pin.name||'';
+    document.getElementById('d-ok').value=pin.ok||'';
+    document.getElementById('d-start').value=pin.start||'';
+    document.getElementById('d-release').value=pin.release||'';
+    document.getElementById('d-note').value=pin.note||'';
+    document.getElementById('d-lane').value=pin.lane||'';
+    const dp=document.querySelector(`input[name="dprio"][value="${pin.prio}"]`);
+    if(dp) dp.checked=true;
+    const dc=document.querySelector(`input[name="dcol"][value="${pin.color}"]`);
+    if(dc) dc.checked=true;
+    document.querySelectorAll('input[name="dface"]').forEach(r=>r.checked=false);
+    if(pin.face){const df=document.querySelector(`input[name="dface"][value="${pin.face}"]`);if(df)df.checked=true;}
+    const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
+    ['right','left','straight','uright','uleft','enter'].forEach(k=>{
+      const el=document.getElementById('dt-'+k);if(el)el.checked=safeBans.includes(k);
+    });
+    // ボタンを「保存」に変更
+    const btn=document.getElementById('d-btn-add');
+    btn.disabled=false;
+    btn.textContent='💾 変更を保存する';
+    btn.onclick=function(){
+      const pin2=pins.find(p=>p.id===id);if(!pin2)return;
+      const f=collectPinForm('d');
+      Object.assign(pin2,f);
+      if(markers[pin2.id]) markers[pin2.id].setIcon(mkIcon(pin2));
+      const pinData={...f,lat:pin2.latlng?pin2.latlng.lat:pin2.lat,lng:pin2.latlng?pin2.latlng.lng:pin2.lng,id:pin2.id};
+      db.ref('pins/'+pin2.id).set(pinData);
+      resetPinForm('d');
+      btn.disabled=true;
+      btn.textContent='地図をクリックして位置を指定';
+      btn.onclick=window.deskAddPin;
+      renderList();updateStats();
+    };
+    // ピン一覧パネルにスクロール
+    desktopPanel('list');
+    document.getElementById('desktop-form').scrollIntoView({behavior:'smooth'});
+  } else {
+    window.editPin(id);
+  }
 };
 
 window.panelDelPin=function(){
