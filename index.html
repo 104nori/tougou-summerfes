@@ -778,10 +778,18 @@ function addMarkerToMap(pin){
     pin.latlng=ll;
     pin.lat=ll.lat; pin.lng=ll.lng;
     m.setPopupContent(mkPopup(pin));
-    // Update position in Firebase
     db.ref('pins/'+pin.id).update({lat:ll.lat, lng:ll.lng});
   });
   m.on('dragstart',()=>m.closePopup());
+  // ポップアップが開いた時にボタンを直接バインド
+  m.on('popupopen',()=>{
+    const el=m.getPopup().getElement();
+    if(!el) return;
+    const editBtn=el.querySelector('.popup-edit-btn');
+    const delBtn=el.querySelector('.popup-del-btn');
+    if(editBtn) editBtn.addEventListener('click',()=>window.editPin(pin.id));
+    if(delBtn)  delBtn.addEventListener('click',()=>window.delPin(pin.id));
+  });
   markers[pin.id]=m;
 }
 
@@ -832,8 +840,8 @@ function mkPopup(pin){
       ${pin.release?`<div class="pop-row"><span class="ok">🔓 解除条件：${pin.release}</span></div>`:''}
       ${pin.note?`<div class="pop-note">📝 ${pin.note}</div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px">
-        <button class="pop-del" style="flex:1" onclick="editPin('${pin.id}')">✏️ 編集</button>
-        <button class="pop-del" style="flex:1" onclick="delPin('${pin.id}')">🗑️ 削除</button>
+        <button class="pop-del popup-edit-btn" style="flex:1">✏️ 編集</button>
+        <button class="pop-del popup-del-btn" style="flex:1">🗑️ 削除</button>
       </div>
     </div>`;
 }
