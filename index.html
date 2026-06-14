@@ -592,6 +592,9 @@ window.desktopPanel=function(panel){
 
 /* ══ MAP CLICK ══ */
 map.on('click',e=>{
+  if(document.getElementById('pin-panel').style.display!=='none'){
+    closePinPanel(); return;
+  }
   if(routeMode){
     pendingRouteLL=e.latlng;
     const hint=document.getElementById('map-hint');
@@ -648,9 +651,15 @@ window.closeSheet=function(){
   document.getElementById('sheet-pin').classList.remove('show');
   document.getElementById('sheet-route').classList.remove('show');
   // reset edit mode
+  const wasEditing=editingPinId;
   editingPinId=null;
   document.getElementById('sheet-pin-title').textContent='📍 ピンを追加';
   document.getElementById('sheet-pin-submit').textContent='📍 このピンを追加する';
+  // 編集キャンセル時はパネルを再表示
+  if(wasEditing && pins.find(p=>p.id===wasEditing)){
+    activePinId=wasEditing;
+    openPinPanel(wasEditing);
+  }
 };
 
 /* ══ COLLECT PIN FORM ══ */
@@ -831,8 +840,10 @@ window.closePinPanel=function(){
 
 window.panelEditPin=function(){
   if(!activePinId) return;
-  closePinPanel();
-  window.editPin(activePinId);
+  const id=activePinId;
+  // パネルを隠す（シートが開いたら自動で隠れる）
+  document.getElementById('pin-panel').style.display='none';
+  window.editPin(id);
 };
 
 window.panelDelPin=function(){
@@ -1224,6 +1235,9 @@ else{
   // wire map click for desktop pin mode
   map.off('click');
   map.on('click',e=>{
+    if(document.getElementById('pin-panel').style.display!=='none'){
+      closePinPanel(); return;
+    }
     if(activeDesktopPanel==='route'){
       desktopRoutePending=e.latlng;
       const day=activeDay;
