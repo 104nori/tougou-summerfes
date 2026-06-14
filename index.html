@@ -278,6 +278,20 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
   #map-view,#list-view,#route-view{display:none}
   #map-view.active,#list-view.active,#route-view.active{display:flex}
 }
+.seg-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:800;
+  border-radius:4px;padding:2px 6px;border:1px solid;white-space:nowrap}
+.seg-mgr{padding:10px 12px;background:#f7f9fc;border-bottom:1px solid var(--border);flex-shrink:0}
+.seg-mgr h4{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.seg-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.seg-row{display:flex;align-items:center;gap:6px;font-size:12px}
+.seg-color-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.seg-name{flex:1;font-weight:700}
+.seg-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px}
+.seg-add-row{display:flex;gap:6px}
+.seg-add-row input{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit}
+.seg-add-row input:focus{outline:none;border-color:var(--indigo)}
+.seg-add-btn{background:var(--indigo);color:white;border:none;border-radius:8px;padding:7px 12px;
+  font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
 .desktop-tab-bar{display:none;background:var(--navy-mid);flex-shrink:0}
 .dtb-btn{flex:1;padding:10px;border:none;background:none;color:#9fb3cc;
   font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
@@ -360,6 +374,11 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
     <div id="desktop-form" style="background:#f7f9fc;border-bottom:2px solid var(--border);padding:10px 12px;flex-shrink:0;overflow-y:auto;max-height:55vh">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">新規ピン追加</div>
       <div class="sf sf-sm"><label>📍 場所名</label><input type="text" id="d-name" placeholder="例）北口交差点、神社前"/></div>
+      <div class="sf sf-sm"><label>🛤️ 区間</label>
+        <select id="d-seg" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:white">
+          <option value="">未設定</option>
+        </select>
+      </div>
       <div class="sf sf-sm"><label>⚡ 重要度</label>
         <div class="prio-row prio-row-sm" style="gap:5px">
           <input type="radio" name="dprio" id="dp1" value="1" class="pr-radio" checked><label for="dp1">🔴<br>必須</label>
@@ -410,12 +429,26 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
       <div class="route-hint" id="d-hint" style="font-size:10px">⬆️ 地図上をクリックして位置選択</div>
     </div>
 
+    <!-- Segment manager -->
+    <div class="seg-mgr" id="seg-mgr">
+      <h4>🛤️ 区間管理</h4>
+      <div class="seg-list" id="seg-list-el"><div style="font-size:11px;color:var(--muted)">区間がありません。追加してください。</div></div>
+      <div class="seg-add-row">
+        <input type="text" id="seg-input" placeholder="例）A→B 往路、神社〜公園"/>
+        <button class="seg-add-btn" onclick="addSegment()">＋追加</button>
+      </div>
+    </div>
+
     <!-- filter tabs -->
     <div class="filter-bar" id="pin-filter-bar">
       <button class="ftab on" onclick="setFilter('all',this)">全<span class="cnt" id="tc-all">0</span></button>
       <button class="ftab" onclick="setFilter('1',this)">🔴必須<span class="cnt" id="tc-1">0</span></button>
       <button class="ftab" onclick="setFilter('2',this)">🟡推奨<span class="cnt" id="tc-2">0</span></button>
       <button class="ftab" onclick="setFilter('3',this)">🔵余裕<span class="cnt" id="tc-3">0</span></button>
+    </div>
+    <!-- Segment filter -->
+    <div class="filter-bar" id="seg-filter-bar" style="flex-wrap:wrap;min-height:0">
+      <button class="ftab on" id="sf-all" onclick="setSegFilter('all',this)">全区間</button>
     </div>
     <div class="pin-list" id="pin-list">
       <div class="empty"><div class="ei">📭</div>まだピンがありません<br>地図をタップして追加</div>
@@ -450,6 +483,11 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;height:var(--nh);
   <div class="sh-title" id="sheet-pin-title">📍 ピンを追加</div>
   <div class="sh-body">
     <div class="sf"><label>📍 場所名</label><input type="text" id="s-name" placeholder="例）北口交差点、神社前"/></div>
+    <div class="sf"><label>🛤️ 区間（どのルートか）</label>
+      <select id="s-seg" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-size:15px;font-family:inherit;background:white;-webkit-appearance:none">
+        <option value="">未設定</option>
+      </select>
+    </div>
     <div class="sf"><label>⚡ 重要度</label>
       <div class="prio-row">
         <input type="radio" name="sprio" id="sp1" value="1" class="pr-radio" checked><label for="sp1">🔴<br>絶対必要</label>
@@ -540,6 +578,83 @@ db.ref('.info/connected').on('value',snap=>{setSyncStatus(snap.val()?'ok':'err')
 const PRIO={1:{l:'🔴 絶対必要',s:'必須',pb:'pb1',pt:'ptag1',gh:'gh1'},2:{l:'🟡 できれば',s:'推奨',pb:'pb2',pt:'ptag2',gh:'gh2'},3:{l:'🔵 余裕なら',s:'余裕',pb:'pb3',pt:'ptag3',gh:'gh3'}};
 const FACE_ARROW={北:'⬆️',南:'⬇️',東:'➡️',西:'⬅️'};
 const TURN_LABELS={right:'右折禁止',left:'左折禁止',straight:'直進禁止',uright:'右Uターン禁止',uleft:'左Uターン禁止',enter:'進入禁止'};
+
+/* ══ SEGMENTS ══ */
+let segments=[]; // [{id,name,color}]
+let activeSegFilter='all';
+const SEG_COLORS=['#e03c3c','#3d5a99','#2eb87a','#e8a020','#9c27b0','#00897b','#f06292','#5c6bc0'];
+
+function segColor(idx){ return SEG_COLORS[idx % SEG_COLORS.length]; }
+
+function renderSegments(){
+  // update manager list
+  const el=document.getElementById('seg-list-el');
+  if(el){
+    el.innerHTML = segments.length
+      ? segments.map((s,i)=>`
+        <div class="seg-row">
+          <div class="seg-color-dot" style="background:${s.color}"></div>
+          <div class="seg-name">${s.name}</div>
+          <button class="seg-del" onclick="delSegment('${s.id}')" title="削除">✕</button>
+        </div>`).join('')
+      : '<div style="font-size:11px;color:var(--muted)">区間がありません。追加してください。</div>';
+  }
+  // update select dropdowns
+  const opts='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  ['s-seg','d-seg'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel) return;
+    const cur=sel.value;
+    sel.innerHTML=opts;
+    sel.value=cur;
+  });
+  // update segment filter bar
+  const fb=document.getElementById('seg-filter-bar');
+  if(fb){
+    fb.innerHTML='<button class="ftab'+(activeSegFilter==='all'?' on':'')+'" id="sf-all" onclick="setSegFilter('all',this)">全区間</button>'
+      +segments.map(s=>`<button class="ftab${activeSegFilter===s.id?' on':''}" onclick="setSegFilter('${s.id}',this)">`
+        +`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:4px;vertical-align:middle"></span>`
+        +`${s.name}</button>`).join('');
+  }
+}
+
+window.addSegment=function(){
+  const inp=document.getElementById('seg-input');
+  const name=inp.value.trim();
+  if(!name) return;
+  const id='seg-'+Date.now();
+  const color=segColor(segments.length);
+  const seg={id,name,color};
+  segments.push(seg);
+  db.ref('segments/'+id).set(seg);
+  inp.value='';
+  renderSegments();
+};
+
+window.delSegment=function(id){
+  segments=segments.filter(s=>s.id!==id);
+  db.ref('segments/'+id).remove();
+  if(activeSegFilter===id) activeSegFilter='all';
+  renderSegments();
+  renderList();
+};
+
+window.setSegFilter=function(val,el){
+  activeSegFilter=val;
+  document.querySelectorAll('#seg-filter-bar .ftab').forEach(t=>t.classList.remove('on'));
+  if(el) el.classList.add('on');
+  renderList();
+};
+
+// Firebase listener for segments
+db.ref('segments').on('value',snap=>{
+  segments=[];
+  const data=snap.val()||{};
+  Object.values(data).forEach(s=>segments.push(s));
+  segments.sort((a,b)=>a.id.localeCompare(b.id));
+  renderSegments();
+  renderList();
+});
 
 let pins=[], pendingLL=null, markers={}, activeFilter='all';
 let routeMode=false, pendingRouteLL=null;
@@ -678,12 +793,14 @@ function collectPinForm(prefix){
   const face=faceEl?faceEl.value:'';
   const pfx=m?'st-':'dt-';
   const bans=['right','left','straight','uright','uleft','enter'].filter(k=>document.getElementById(pfx+k).checked);
-  return{name,note,ok,start,release,lane,prio,color,face,bans};
+  const seg=document.getElementById(m?'s-seg':'d-seg').value||'';
+  return{name,note,ok,start,release,lane,prio,color,face,bans,seg};
 }
 function resetPinForm(prefix){
   const m=prefix==='s';
   ['name','note','ok','start','release'].forEach(f=>{const el=document.getElementById(m?'s-'+f:'d-'+f);if(el)el.value='';});
   document.getElementById(m?'s-lane':'d-lane').value='';
+  document.getElementById(m?'s-seg':'d-seg').value='';
   ['right','left','straight','uright','uleft','enter'].forEach(k=>{document.getElementById((m?'st-':'dt-')+k).checked=false;});
   const fr=document.querySelector(`input[name="${m?'sface':'dface'}"]:checked`);
   if(fr)fr.checked=false;
@@ -819,6 +936,7 @@ function openPinPanel(id){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <div style="width:14px;height:14px;border-radius:50%;background:${pin.color};border:2px solid rgba(0,0,0,.15)"></div>
       <div style="font-size:16px;font-weight:800">${pin.name}</div>
+      ${(()=>{const sg=segments.find(s=>s.id===pin.seg);return sg?`<span style="font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:${sg.color}22;color:${sg.color};border:1px solid ${sg.color}">${sg.name}</span>`:''})()}
       <span style="margin-left:auto;font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px;
         background:${pm.pb==='pb1'?'var(--p1-bg)':pm.pb==='pb2'?'var(--p2-bg)':'var(--p3-bg)'};
         color:${pm.pb==='pb1'?'var(--p1-t)':pm.pb==='pb2'?'var(--p2-t)':'var(--p3-t)'}">
@@ -856,6 +974,7 @@ window.panelEditPin=function(){
     document.getElementById('d-release').value=pin.release||'';
     document.getElementById('d-note').value=pin.note||'';
     document.getElementById('d-lane').value=pin.lane||'';
+    document.getElementById('d-seg').value=pin.seg||'';
     const dp=document.querySelector(`input[name="dprio"][value="${pin.prio}"]`);
     if(dp) dp.checked=true;
     const dc=document.querySelector(`input[name="dcol"][value="${pin.color}"]`);
@@ -977,6 +1096,7 @@ window.listEditPin=function(id){
     document.getElementById('s-release').value=pin.release||'';
     document.getElementById('s-note').value=pin.note||'';
     document.getElementById('s-lane').value=pin.lane||'';
+    document.getElementById('s-seg').value=pin.seg||'';
     const sp=document.querySelector(`input[name="sprio"][value="${pin.prio}"]`);if(sp)sp.checked=true;
     const sc=document.querySelector(`input[name="scol"][value="${pin.color}"]`);if(sc)sc.checked=true;
     document.querySelectorAll('input[name="sface"]').forEach(r=>r.checked=false);
@@ -1033,7 +1153,8 @@ window.setFilter=function(val,el){
 /* ══ RENDER PIN LIST ══ */
 function renderList(){
   const el=document.getElementById('pin-list');
-  const list=activeFilter==='all'?pins:pins.filter(p=>p.prio===parseInt(activeFilter));
+  let list=activeFilter==='all'?pins:pins.filter(p=>p.prio===parseInt(activeFilter));
+  if(activeSegFilter!=='all') list=list.filter(p=>p.seg===activeSegFilter);
   if(!list.length){el.innerHTML=`<div class="empty"><div class="ei">📭</div>${pins.length?'この重要度のピンはありません':'まだピンがありません<br>地図をタップして追加'}</div>`;return;}
   if(activeFilter==='all'){
     let h='';
@@ -1054,7 +1175,11 @@ function cardHtml(pin){
   return `<div class="pin-card pr${pin.prio}">
     <div class="pc-dot" style="background:${pin.color}"></div>
     <div class="pc-info">
-      <div class="pc-name"><span class="ptag ${pm.pt}">${pm.s}</span>${pin.name}</div>
+      <div class="pc-name">
+          <span class="ptag ${pm.pt}">${pm.s}</span>
+          ${pin.seg?(()=>{const sg=segments.find(s=>s.id===pin.seg);return sg?`<span class="seg-badge" style="background:${sg.color}22;color:${sg.color};border-color:${sg.color}">${sg.name}</span>`:''})():''}
+          ${pin.name}
+        </div>
       ${pin.lane?`<div class="pc-sub">📍 ${pin.lane}${faceStr?' ・ '+faceStr:''}</div>`:(faceStr?`<div class="pc-sub">🧭 ${faceStr}</div>`:'')}
       ${bansShort?`<div class="pc-sub"><b>🚫 ${bansShort}</b></div>`:''}
       ${pin.ok?`<div class="pc-sub" style="color:var(--safe)">🟢 ${pin.ok}</div>`:''}
