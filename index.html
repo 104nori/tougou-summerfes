@@ -725,9 +725,10 @@ window.editPin=function(id){
     if(fEl) fEl.checked=true;
   }
   // bans
+  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
   ['right','left','straight','uright','uleft','enter'].forEach(k=>{
     const el=document.getElementById('st-'+k);
-    if(el) el.checked=pin.bans&&pin.bans.includes(k);
+    if(el) el.checked=safeBans.includes(k);
   });
   // update sheet UI
   document.getElementById('sheet-pin-title').textContent='✏️ ピンを編集';
@@ -784,15 +785,14 @@ function addMarkerToMap(pin){
   markers[pin.id]=m;
 }
 
-/* ══ ICON ══ */
 function mkIcon(pin){
   const s=iconScale();
-  const r=Math.round(7*s);          // circle radius (7px base)
-  const tailH=Math.round(5*s);      // tail height
-  const tailW=Math.round(4*s);      // tail half-width
-  const d=r*2;                      // diameter
+  const r=Math.round(7*s);
+  const tailH=Math.round(5*s);
+  const tailW=Math.round(4*s);
+  const d=r*2;
   const totalH=d+tailH;
-  const stroke=[3,2,1][pin.prio-1]; // p1=thick border, p3=thin
+  const stroke=[3,2,1][pin.prio-1];
   const arrowChar=pin.face?({'北':'↑','南':'↓','東':'→','西':'←'}[pin.face]):'';
   const arrowFs=Math.max(5,Math.round(7*s));
   return L.divIcon({
@@ -819,7 +819,8 @@ function mkIcon(pin){
 /* ══ POPUP ══ */
 function mkPopup(pin){
   const pm=PRIO[pin.prio];
-  const bansHtml=pin.bans.length?pin.bans.map(k=>`<b>🚫 ${TURN_LABELS[k]}</b>`).join('<br>'):'<span class="ok">✅ 禁止なし</span>';
+  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
+  const bansHtml=safeBans.length?safeBans.map(k=>`<b>🚫 ${TURN_LABELS[k]}</b>`).join('<br>'):'<span class="ok">✅ 禁止なし</span>';
   const faceHtml=pin.face?`${FACE_ARROW[pin.face]} ${pin.face}向きに立つ`:'未設定';
   return `<div class="pop-head" style="background:${pin.color}">📍 ${pin.name}<span class="pop-ptag">${pm.l}</span></div>
     <div class="pop-body">
@@ -876,7 +877,8 @@ function renderList(){
 }
 function cardHtml(pin){
   const pm=PRIO[pin.prio];
-  const bansShort=pin.bans.map(k=>TURN_LABELS[k]).join('・');
+  const safeBans=Array.isArray(pin.bans)?pin.bans:(pin.bans?Object.values(pin.bans):[]);
+  const bansShort=safeBans.map(k=>TURN_LABELS[k]).join('・');
   const faceStr=pin.face?`${FACE_ARROW[pin.face]}${pin.face}向き`:'';
   return `<div class="pin-card pr${pin.prio}">
     <div class="pc-dot" style="background:${pin.color}"></div>
@@ -1130,7 +1132,11 @@ db.ref('pins').on('value', snap=>{
   pins=[];
   const data=snap.val()||{};
   Object.values(data).forEach(pinData=>{
-    const pin={...pinData, latlng:{lat:pinData.lat, lng:pinData.lng}};
+    // Firebase はオブジェクトで返すことがあるので配列に正規化
+    const bans=pinData.bans
+      ? (Array.isArray(pinData.bans) ? pinData.bans : Object.values(pinData.bans))
+      : [];
+    const pin={...pinData, bans, latlng:{lat:pinData.lat, lng:pinData.lng}};
     pins.push(pin);
     addMarkerToMap(pin);
   });
