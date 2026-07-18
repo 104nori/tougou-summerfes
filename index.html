@@ -253,12 +253,12 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   background:white;color:var(--muted);font-family:inherit;transition:all .15s;
   -webkit-appearance:none;touch-action:manipulation}
 .sel-btn.sel-active{background:var(--indigo);border-color:var(--indigo);color:white}
-#rtype-group .sel-btn.sel-active[data-val="start"]{background:#2eb87a;border-color:#2eb87a}
-#rtype-group .sel-btn.sel-active[data-val="pass"]{background:var(--indigo);border-color:var(--indigo)}
-#rtype-group .sel-btn.sel-active[data-val="end"]{background:var(--red);border-color:var(--red)}
-#rday-group .sel-btn.sel-active[data-val="1"]{background:var(--red);border-color:var(--red)}
-#rday-group .sel-btn.sel-active[data-val="2"]{background:var(--indigo);border-color:var(--indigo)}
-#rday-group .sel-btn.sel-active[data-val="both"]{background:#9c27b0;border-color:#9c27b0}
+#rtype-group .sel-btn.sel-active[data-val="start"]{background:#2eb87a;border-color:#2eb87a;color:white}
+#rtype-group .sel-btn.sel-active[data-val="pass"]{background:var(--indigo);border-color:var(--indigo);color:white}
+#rtype-group .sel-btn.sel-active[data-val="end"]{background:var(--red);border-color:var(--red);color:white}
+#rday-group .sel-btn.sel-active[data-val="1"]{background:var(--red);border-color:var(--red);color:white}
+#rday-group .sel-btn.sel-active[data-val="2"]{background:var(--indigo);border-color:var(--indigo);color:white}
+#rday-group .sel-btn.sel-active[data-val="both"]{background:#9c27b0;border-color:#9c27b0;color:white}
 #sp2:checked+label{background:#fff8e6;border-color:var(--p2b);color:#8a5e00}
 #sp3:checked+label{background:#f0f8ff;border-color:var(--p3b);color:#1a5280}
 .sh-body .to+label{padding:9px 5px;font-size:12px}
@@ -538,17 +538,17 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <!-- 地点種別 -->
     <div class="sf"><label>📍 地点の種別</label>
       <div style="display:flex;gap:8px" id="rtype-group">
-        <button type="button" class="sel-btn sel-active" data-group="rtype" data-val="start" onclick="selBtn(this)">🚩 始発</button>
-        <button type="button" class="sel-btn" data-group="rtype" data-val="pass" onclick="selBtn(this)">📍 通過</button>
-        <button type="button" class="sel-btn" data-group="rtype" data-val="end" onclick="selBtn(this)">🏁 終着</button>
+        <button type="button" class="sel-btn sel-active" data-group="rtype" data-val="start" onclick="selBtn(this)">始発</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="pass" onclick="selBtn(this)">通過</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="end" onclick="selBtn(this)">終着</button>
       </div>
     </div>
     <!-- 日程 -->
     <div class="sf"><label>📅 日程</label>
       <div style="display:flex;gap:8px" id="rday-group">
-        <button type="button" class="sel-btn sel-active" data-group="rday" data-val="1" onclick="selBtn(this)">🔴 1日目</button>
-        <button type="button" class="sel-btn" data-group="rday" data-val="2" onclick="selBtn(this)">🔵 2日目</button>
-        <button type="button" class="sel-btn" data-group="rday" data-val="both" onclick="selBtn(this)">🟣 共通</button>
+        <button type="button" class="sel-btn sel-active" data-group="rday" data-val="1" onclick="selBtn(this)">1日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="2" onclick="selBtn(this)">2日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="both" onclick="selBtn(this)">共通</button>
       </div>
     </div>
     <!-- 区間 -->
