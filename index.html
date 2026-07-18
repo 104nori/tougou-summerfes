@@ -537,18 +537,18 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   <div class="sh-body">
     <!-- 地点種別 -->
     <div class="sf"><label>📍 地点の種別</label>
-      <div style="display:flex;gap:8px" id="rtype-group">
-        <button type="button" class="sel-btn sel-active" data-group="rtype" data-val="start" onclick="selBtn(this)">始発</button>
-        <button type="button" class="sel-btn" data-group="rtype" data-val="pass" onclick="selBtn(this)">通過</button>
-        <button type="button" class="sel-btn" data-group="rtype" data-val="end" onclick="selBtn(this)">終着</button>
+      <div style="display:flex;gap:8px;position:relative;z-index:10" id="rtype-group">
+        <button type="button" class="sel-btn sel-active" data-group="rtype" data-val="start">始発</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="pass">通過</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="end">終着</button>
       </div>
     </div>
     <!-- 日程 -->
     <div class="sf"><label>📅 日程</label>
-      <div style="display:flex;gap:8px" id="rday-group">
-        <button type="button" class="sel-btn sel-active" data-group="rday" data-val="1" onclick="selBtn(this)">1日目</button>
-        <button type="button" class="sel-btn" data-group="rday" data-val="2" onclick="selBtn(this)">2日目</button>
-        <button type="button" class="sel-btn" data-group="rday" data-val="both" onclick="selBtn(this)">共通</button>
+      <div style="display:flex;gap:8px;position:relative;z-index:10" id="rday-group">
+        <button type="button" class="sel-btn sel-active" data-group="rday" data-val="1">1日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="2">2日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="both">共通</button>
       </div>
     </div>
     <!-- 区間 -->
@@ -1013,6 +1013,11 @@ function getSelVal(group){
   const el=document.querySelector(`[data-group="${group}"].sel-active`);
   return el?el.dataset.val:'';
 }
+// document全体でsel-btnのクリックを拾う（z-index問題回避）
+document.addEventListener('click', function(e){
+  const btn=e.target.closest('.sel-btn');
+  if(btn) selBtn(btn);
+});
 
 /* ══ SEGMENTS ══ */
 function updateSegSelects(curVal=''){
