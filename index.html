@@ -248,18 +248,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
 .sh-body .sf input,.sh-body .sf textarea,.sh-body .sf select{font-size:15px;padding:10px 13px;border-radius:10px}
 .sh-body .prow .pr+label{padding:9px 4px;font-size:12px}
 #sp1:checked+label{background:#fff0f0;border-color:var(--p1b);color:#b52020}
-#rt-start:checked+label{background:#e8f5e9;border-color:#2eb87a;color:#1b5e20}
-#rt-pass:checked+label{background:#e3f2fd;border-color:#3d5a99;color:#0d2e6e}
-#rt-end:checked+label{background:#fce4ec;border-color:#e03c3c;color:#b52020}
-#rd-1:checked+label{background:#fff0f0;border-color:#e03c3c;color:#b52020}
-#rd-2:checked+label{background:#e3f2fd;border-color:#3d5a99;color:#0d2e6e}
-#rd-both:checked+label{background:#f3e5f5;border-color:#9c27b0;color:#4a148c}
-.rtype-label{flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);
-  cursor:pointer;font-size:13px;font-weight:800;text-align:center;
-  background:white;color:var(--muted);user-select:none;display:flex;align-items:center;justify-content:center}
-.rday-label{flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);
+.sel-btn{flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);
   cursor:pointer;font-size:12px;font-weight:800;text-align:center;
-  background:white;color:var(--muted);user-select:none;display:flex;align-items:center;justify-content:center}
+  background:white;color:var(--muted);font-family:inherit;transition:all .15s}
+.sel-btn.sel-active{background:var(--indigo);border-color:var(--indigo);color:white}
+#rtype-group .sel-btn.sel-active[data-val="start"]{background:#2eb87a;border-color:#2eb87a}
+#rtype-group .sel-btn.sel-active[data-val="pass"]{background:var(--indigo);border-color:var(--indigo)}
+#rtype-group .sel-btn.sel-active[data-val="end"]{background:var(--red);border-color:var(--red)}
+#rday-group .sel-btn.sel-active[data-val="1"]{background:var(--red);border-color:var(--red)}
+#rday-group .sel-btn.sel-active[data-val="2"]{background:var(--indigo);border-color:var(--indigo)}
+#rday-group .sel-btn.sel-active[data-val="both"]{background:#9c27b0;border-color:#9c27b0}
 #sp2:checked+label{background:#fff8e6;border-color:var(--p2b);color:#8a5e00}
 #sp3:checked+label{background:#f0f8ff;border-color:var(--p3b);color:#1a5280}
 .sh-body .to+label{padding:9px 5px;font-size:12px}
@@ -535,24 +533,18 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   <div class="sh-body">
     <!-- 地点種別 -->
     <div class="sf"><label>📍 地点の種別</label>
-      <div style="display:flex;gap:8px">
-        <input type="radio" name="rtype" id="rt-start" value="start" class="pr" checked>
-        <label for="rt-start" class="rtype-label">🚩 始発</label>
-        <input type="radio" name="rtype" id="rt-pass" value="pass" class="pr">
-        <label for="rt-pass" class="rtype-label">📍 通過</label>
-        <input type="radio" name="rtype" id="rt-end" value="end" class="pr">
-        <label for="rt-end" class="rtype-label">🏁 終着</label>
+      <div style="display:flex;gap:8px" id="rtype-group">
+        <button type="button" class="sel-btn sel-active" data-group="rtype" data-val="start" onclick="selBtn(this)">🚩 始発</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="pass" onclick="selBtn(this)">📍 通過</button>
+        <button type="button" class="sel-btn" data-group="rtype" data-val="end" onclick="selBtn(this)">🏁 終着</button>
       </div>
     </div>
     <!-- 日程 -->
     <div class="sf"><label>📅 日程</label>
-      <div style="display:flex;gap:8px">
-        <input type="radio" name="rday" id="rd-1" value="1" class="pr" checked>
-        <label for="rd-1" class="rday-label">🔴 1日目</label>
-        <input type="radio" name="rday" id="rd-2" value="2" class="pr">
-        <label for="rd-2" class="rday-label">🔵 2日目</label>
-        <input type="radio" name="rday" id="rd-both" value="both" class="pr">
-        <label for="rd-both" class="rday-label">🟣 共通</label>
+      <div style="display:flex;gap:8px" id="rday-group">
+        <button type="button" class="sel-btn sel-active" data-group="rday" data-val="1" onclick="selBtn(this)">🔴 1日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="2" onclick="selBtn(this)">🔵 2日目</button>
+        <button type="button" class="sel-btn" data-group="rday" data-val="both" onclick="selBtn(this)">🟣 共通</button>
       </div>
     </div>
     <!-- 区間 -->
@@ -751,8 +743,9 @@ window.openRouteSheet=function(){
     rsel.innerHTML='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   }
   // 日程を現在のactiveDayに合わせる
-  const rdEl=document.getElementById('rd-'+activeDay);
-  if(rdEl) rdEl.checked=true;
+  document.querySelectorAll('[data-group="rday"]').forEach(b=>b.classList.remove('sel-active'));
+  const rdBtn=document.querySelector(`[data-group="rday"][data-val="${activeDay}"]`);
+  if(rdBtn) rdBtn.classList.add('sel-active');
   document.getElementById('sheet-route-title').textContent='🛤️ ルート地点を追加';
   openSheet('route');
 };
@@ -1006,6 +999,17 @@ function updateStats(){
   const t0m=document.getElementById('tc0m'); if(t0m) t0m.textContent=pins.length;
 }
 
+/* ══ SEL BTN ══ */
+window.selBtn=function(el){
+  const group=el.dataset.group;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b=>b.classList.remove('sel-active'));
+  el.classList.add('sel-active');
+};
+function getSelVal(group){
+  const el=document.querySelector(`[data-group="${group}"].sel-active`);
+  return el?el.dataset.val:'';
+}
+
 /* ══ SEGMENTS ══ */
 function updateSegSelects(curVal=''){
   const opts='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
@@ -1049,8 +1053,8 @@ window.setDay=function(d){
 };
 window.saveRoutePoint=function(){
   if(!pendingRouteLL) return;
-  const rtype=document.querySelector('input[name="rtype"]:checked').value; // start/pass/end
-  const rday=document.querySelector('input[name="rday"]:checked').value;   // 1/2/both
+  const rtype=getSelVal('rtype')||'pass';
+  const rday=getSelVal('rday')||'1';
   const rseg=document.getElementById('rseg').value;
   const name=document.getElementById('rn').value.trim();
   const time=document.getElementById('rt').value;
@@ -1087,7 +1091,9 @@ window.saveRoutePoint=function(){
     // 始発・通過 → シートを閉じて次の地点をタップ待ち
     closeSheets();
     const nextType=rtype==='start'?'pass':'pass';
-    document.getElementById('rt-'+nextType).checked=true;
+    document.querySelectorAll('[data-group="rtype"]').forEach(b=>b.classList.remove('sel-active'));
+    const nb=document.querySelector(`[data-group="rtype"][data-val="${nextType}"]`);
+    if(nb) nb.classList.add('sel-active');
     routeMode=true;
     document.getElementById('btn-rmode').classList.add('on');
     const typeNext={start:'通過地点',pass:'次の通過地点または終着地点'}[rtype];
