@@ -25,7 +25,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--HH);
   display:flex;align-items:center;gap:8px;padding:0 12px}
 .logo{font-size:15px;font-weight:800;color:white;white-space:nowrap}
 .hbtns{display:flex;gap:4px;margin-left:8px}
-@media(max-width:767px){.hbtns{display:none}}
+@media(max-width:767px){
+  .hbtns .hbtn:not(#btn-add-pin){display:none}
+  #btn-add-pin{display:flex}
+}
 .hbtn{background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.2);
   border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
   white-space:nowrap;transition:all .15s}
@@ -262,6 +265,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <button class="hbtn" id="hbtn-pins" onclick="togglePanel('pins')">📋 配置</button>
     <button class="hbtn" id="hbtn-route" onclick="togglePanel('route')">🛤️ ルート</button>
     <button class="hbtn" id="hbtn-seg" onclick="togglePanel('seg')">🗂️ 区間</button>
+    <button class="hbtn" id="btn-add-pin" disabled onclick="openAddSheet()" style="background:var(--accent);color:var(--navy);border-color:var(--accent)">ピン追加＋</button>
   </div>
   <div class="hstats">
     <div class="hchip c1">🔴<strong id="sc1">0</strong></div>
@@ -281,7 +285,6 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="mapbar" id="mapbar">
       <div class="mapbar-hint" id="mhint">📍 地図をタップして位置を選択</div>
       <button class="btn-tog" id="btn-rmode" onclick="toggleRouteMode()">🛤️ ルート</button>
-      <button class="btn-fab" id="btn-add-pin" disabled onclick="openAddSheet()">ピン追加＋</button>
     </div>
     <div id="map" style="flex:1;min-height:0"></div>
     <!-- Pin panel -->
