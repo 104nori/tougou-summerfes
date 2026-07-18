@@ -24,6 +24,33 @@ header{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--HH);
   background:var(--navy);border-bottom:3px solid var(--accent);
   display:flex;align-items:center;gap:8px;padding:0 12px}
 .logo{font-size:15px;font-weight:800;color:white;white-space:nowrap}
+.hbtns{display:flex;gap:4px;margin-left:8px}
+@media(max-width:767px){.hbtns{display:none}}
+.hbtn{background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.2);
+  border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+  white-space:nowrap;transition:all .15s}
+.hbtn:hover{background:rgba(255,255,255,.22)}
+.hbtn.on{background:var(--accent);color:var(--navy);border-color:var(--accent)}
+
+/* SLIDE PANEL */
+#slide-panel{
+  position:fixed;top:var(--HH);right:0;bottom:0;z-index:400;
+  width:360px;max-width:100vw;
+  background:white;border-left:1px solid var(--border);
+  display:none;flex-direction:column;
+  box-shadow:-4px 0 20px rgba(0,0,0,.15);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+#slide-panel.show{display:flex}
+@media(max-width:767px){
+  #slide-panel{width:100%;border-left:none;
+    top:auto;bottom:var(--NH);
+    height:75vh;border-radius:16px 16px 0 0;
+    border-top:1px solid var(--border);
+    box-shadow:0 -4px 20px rgba(0,0,0,.15);
+  }
+}
+.panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .logo b{color:var(--accent)}
 .hstats{display:flex;gap:4px;margin-left:auto}
 .hchip{border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:3px}
@@ -214,8 +241,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   .wrap{bottom:0;display:flex}
   .overlay,.sheet{display:none!important}
   #map-view{position:relative;flex:1;display:flex!important;flex-direction:column}
-  #sidebar-pins{display:flex}
-  #route-sidebar{display:none}
+  #list-mobile,#route-mobile,#seg-mobile{display:none!important}
 }
 @media(max-width:767px){
   .sidebar,#route-sidebar{display:none}
@@ -231,6 +257,12 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
 <body>
 <header>
   <div class="logo">🏮 <b>東郷夏祭り</b> 交通整理</div>
+  <!-- ヘッダーボタン -->
+  <div class="hbtns">
+    <button class="hbtn" id="hbtn-pins" onclick="togglePanel('pins')">📋 配置</button>
+    <button class="hbtn" id="hbtn-route" onclick="togglePanel('route')">🛤️ ルート</button>
+    <button class="hbtn" id="hbtn-seg" onclick="togglePanel('seg')">🗂️ 区間</button>
+  </div>
   <div class="hstats">
     <div class="hchip c1">🔴<strong id="sc1">0</strong></div>
     <div class="hchip c2">🟡<strong id="sc2">0</strong></div>
@@ -264,14 +296,50 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     </div>
   </div>
 
-  <!-- SIDEBAR: PIN LIST (desktop) -->
-  <div class="sidebar" id="sidebar-pins">
-    <div class="stabs">
-      <button class="stab on" onclick="deskTab('pins',this)">📋 配置</button>
-      <button class="stab" onclick="deskTab('route',this)">🛤️ ルート</button>
-      <button class="stab" onclick="deskTab('seg',this)">🗂️ 区間</button>
+
+  <!-- MOBILE: LIST -->
+  <div id="list-mobile">
+    <div class="fbar">
+      <button class="ftab on" onclick="setPrioF('all',this)">全<span class="cnt" id="tc0m">0</span></button>
+      <button class="ftab" onclick="setPrioF('1',this)">🔴必須<span class="cnt" id="tc1m">0</span></button>
+      <button class="ftab" onclick="setPrioF('2',this)">🟡推奨<span class="cnt" id="tc2m">0</span></button>
+      <button class="ftab" onclick="setPrioF('3',this)">🔵余裕<span class="cnt" id="tc3m">0</span></button>
     </div>
-    <!-- pin form -->
+    <div class="fbar" id="seg-fbar-m"><button class="ftab on" onclick="setSegF('all',this)">全区間</button></div>
+    <div class="pin-list" id="pin-list-m"><div class="empty"><div class="ei">📭</div>ピンがありません</div></div>
+  </div>
+
+  <!-- MOBILE: ROUTE -->
+  <div id="route-mobile">
+    <div class="daytabs">
+      <button class="dtab on" onclick="setDay(1)">🔴 1日目</button>
+      <button class="dtab" onclick="setDay(2)">🔵 2日目</button>
+    </div>
+    <div class="rv" id="route-content-m"></div>
+  </div>
+
+  <!-- MOBILE: SEG -->
+  <div id="seg-mobile" style="display:none;position:absolute;inset:0;flex-direction:column;background:var(--bg)">
+    <div style="background:var(--navy2);color:white;padding:12px 14px;font-size:14px;font-weight:800;flex-shrink:0">🛤️ 区間管理</div>
+    <div style="flex:1;overflow-y:auto;padding:12px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
+      <div id="seg-items-m" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">区間を追加</div>
+        <div style="display:flex;gap:8px">
+          <input id="seg-inp-m" placeholder="例）A→B 往路" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:14px;font-family:inherit"/>
+          <button type="button" onclick="addSegM()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE PANEL -->
+<div id="slide-panel">
+  <!-- 配置パネル -->
+  <div id="panel-pins" class="panel-body" style="display:none;flex-direction:column">
+    <!-- フォーム -->
     <div class="form-area" id="desk-pin-form">
       <div class="fh">新規ピン追加</div>
       <div class="sf"><label>📍 場所名</label><input id="dn" placeholder="例）北口交差点"/></div>
@@ -325,8 +393,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
       <button class="btn-save" id="desk-save-btn" disabled onclick="deskSavePin()">地図をクリックして位置を指定</button>
       <div class="form-hint" id="desk-hint">⬆️ 地図をクリックして位置選択</div>
     </div>
-
-    <!-- filters -->
+    <!-- フィルター＋リスト -->
     <div class="fbar" id="prio-fbar">
       <button class="ftab on" onclick="setPrioF('all',this)">全<span class="cnt" id="tc0">0</span></button>
       <button class="ftab" onclick="setPrioF('1',this)">🔴必須<span class="cnt" id="tc1">0</span></button>
@@ -337,8 +404,8 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="pin-list" id="pin-list-d"><div class="empty"><div class="ei">📭</div>ピンがありません</div></div>
   </div>
 
-  <!-- SIDEBAR: ROUTE (desktop) -->
-  <div class="sidebar" id="route-sidebar" style="display:none">
+  <!-- ルートパネル -->
+  <div id="panel-route" class="panel-body" style="display:none;flex-direction:column">
     <div class="daytabs">
       <button class="dtab on" id="dday1" onclick="setDay(1)">🔴 1日目</button>
       <button class="dtab" id="dday2" onclick="setDay(2)">🔵 2日目</button>
@@ -346,54 +413,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="rv" id="route-content-d"></div>
   </div>
 
-  <!-- DESKTOP: SEG PANEL -->
-  <div class="sidebar" id="seg-sidebar" style="display:none;flex-direction:column">
-    <div style="background:var(--navy2);color:white;padding:12px 14px;font-size:13px;font-weight:800;flex-shrink:0">🛤️ 区間管理</div>
-    <div style="flex:1;overflow-y:auto;padding:12px">
-      <p style="font-size:11px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
+  <!-- 区間パネル -->
+  <div id="panel-seg" class="panel-body" style="display:none;flex-direction:column">
+    <div style="padding:12px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
       <div id="seg-items-d" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
       <div style="background:#f7f9fc;border-radius:10px;padding:10px;border:1px solid var(--border)">
         <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">区間を追加</div>
         <div class="seg-add">
           <input id="seg-inp-d" placeholder="例）A→B 往路"/>
           <button type="button" onclick="addSeg()">＋</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MOBILE: LIST -->
-  <div id="list-mobile">
-    <div class="fbar">
-      <button class="ftab on" onclick="setPrioF('all',this)">全<span class="cnt" id="tc0m">0</span></button>
-      <button class="ftab" onclick="setPrioF('1',this)">🔴必須<span class="cnt" id="tc1m">0</span></button>
-      <button class="ftab" onclick="setPrioF('2',this)">🟡推奨<span class="cnt" id="tc2m">0</span></button>
-      <button class="ftab" onclick="setPrioF('3',this)">🔵余裕<span class="cnt" id="tc3m">0</span></button>
-    </div>
-    <div class="fbar" id="seg-fbar-m"><button class="ftab on" onclick="setSegF('all',this)">全区間</button></div>
-    <div class="pin-list" id="pin-list-m"><div class="empty"><div class="ei">📭</div>ピンがありません</div></div>
-  </div>
-
-  <!-- MOBILE: ROUTE -->
-  <div id="route-mobile">
-    <div class="daytabs">
-      <button class="dtab on" onclick="setDay(1)">🔴 1日目</button>
-      <button class="dtab" onclick="setDay(2)">🔵 2日目</button>
-    </div>
-    <div class="rv" id="route-content-m"></div>
-  </div>
-
-  <!-- MOBILE: SEG -->
-  <div id="seg-mobile" style="display:none;position:absolute;inset:0;flex-direction:column;background:var(--bg)">
-    <div style="background:var(--navy2);color:white;padding:12px 14px;font-size:14px;font-weight:800;flex-shrink:0">🛤️ 区間管理</div>
-    <div style="flex:1;overflow-y:auto;padding:12px">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
-      <div id="seg-items-m" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
-      <div style="background:white;border-radius:12px;padding:12px;border:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">区間を追加</div>
-        <div style="display:flex;gap:8px">
-          <input id="seg-inp-m" placeholder="例）A→B 往路" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:14px;font-family:inherit"/>
-          <button type="button" onclick="addSegM()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">＋</button>
         </div>
       </div>
     </div>
@@ -511,6 +540,7 @@ const SEG_COLORS = ['#e03c3c','#3d5a99','#2eb87a','#e8a020','#9c27b0','#00897b',
 
 /* ══ STATE ══ */
 let pins=[], markers={}, activePinId=null, editingPinId=null, pendingLL=null;
+let activePanel=null;
 let segments=[], prioFilter='all', segFilter='all';
 let routeMode=false, pendingRouteLL=null;
 let routes={1:[],2:[]}, rPolylines={1:null,2:null}, rMarkers={1:[],2:[]};
@@ -608,14 +638,29 @@ window.mTab=function(tab){
   if(tab==='route') renderRouteContent();
 };
 
-/* ══ DESKTOP TABS ══ */
-window.deskTab=function(tab,el){
-  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
-  if(el) el.classList.add('on');
-  document.getElementById('sidebar-pins').style.display=tab==='pins'?'flex':'none';
-  document.getElementById('route-sidebar').style.display=tab==='route'?'flex':'none';
-  document.getElementById('seg-sidebar').style.display=tab==='seg'?'flex':'none';
+/* ══ PANEL TOGGLE ══ */
+window.togglePanel=function(tab){
+  const panel=document.getElementById('slide-panel');
+  const btn=document.getElementById('hbtn-'+tab);
+  if(activePanel===tab){
+    // 同じボタンを再度押したら閉じる
+    panel.classList.remove('show');
+    document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+    activePanel=null;
+    setTimeout(()=>map.invalidateSize(),50);
+    return;
+  }
+  // 別パネルを開く
+  activePanel=tab;
+  ['pins','route','seg'].forEach(t=>{
+    const pb=document.getElementById('panel-'+t);
+    if(pb) pb.style.display=t===tab?'flex':'none';
+  });
+  document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  panel.classList.add('show');
   if(tab==='route') renderRouteContent();
+  setTimeout(()=>map.invalidateSize(),50);
 };
 
 /* ══ SHEETS ══ */
