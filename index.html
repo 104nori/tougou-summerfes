@@ -214,8 +214,8 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   .wrap{bottom:0;display:flex}
   .overlay,.sheet{display:none!important}
   #map-view{position:relative;flex:1;display:flex!important;flex-direction:column}
-  .sidebar{display:flex!important}
-  #route-sidebar{display:flex!important}
+  #sidebar-pins{display:flex}
+  #route-sidebar{display:none}
 }
 @media(max-width:767px){
   .sidebar,#route-sidebar{display:none}
@@ -602,7 +602,7 @@ window.mTab=function(tab){
 /* ══ DESKTOP TABS ══ */
 window.deskTab=function(tab,el){
   document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
+  if(el) el.classList.add('on');
   document.getElementById('sidebar-pins').style.display=tab==='pins'?'flex':'none';
   document.getElementById('route-sidebar').style.display=tab==='route'?'flex':'none';
   if(tab==='route') renderRouteContent();
