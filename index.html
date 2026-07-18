@@ -732,6 +732,8 @@ function openSheet(id){
   document.getElementById('overlay').classList.add('show');
   document.getElementById('sheet-pin').classList.toggle('show',id==='pin');
   document.getElementById('sheet-route').classList.toggle('show',id==='route');
+  // sel-btnのイベントを毎回バインド
+  setTimeout(bindSelBtns, 50);
 }
 window.closeSheets=function(){
   document.getElementById('overlay').classList.remove('show');
@@ -1005,6 +1007,7 @@ function updateStats(){
 
 /* ══ SEL BTN ══ */
 window.selBtn=function(el){
+  if(!el||!el.dataset) return;
   const group=el.dataset.group;
   document.querySelectorAll(`[data-group="${group}"]`).forEach(b=>b.classList.remove('sel-active'));
   el.classList.add('sel-active');
@@ -1013,11 +1016,14 @@ function getSelVal(group){
   const el=document.querySelector(`[data-group="${group}"].sel-active`);
   return el?el.dataset.val:'';
 }
-// document全体でsel-btnのクリックを拾う（z-index問題回避）
-document.addEventListener('click', function(e){
-  const btn=e.target.closest('.sel-btn');
-  if(btn) selBtn(btn);
-});
+function bindSelBtns(){
+  document.querySelectorAll('.sel-btn').forEach(btn=>{
+    btn.onclick=function(e){
+      e.stopPropagation();
+      selBtn(this);
+    };
+  });
+}
 
 /* ══ SEGMENTS ══ */
 function updateSegSelects(curVal=''){
