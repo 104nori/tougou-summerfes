@@ -587,21 +587,20 @@ map.on('click', e=>{
   if(document.getElementById('pin-panel').style.display==='block'){ closePinPanel(); return; }
   if(routeMode){
     pendingRouteLL=e.latlng;
-    setHint(`✅ 地点確定 — 「地点追加＋」をタップ`,true);
-    document.getElementById('btn-add-pin').disabled=false;
-    document.getElementById('btn-add-pin').textContent='地点追加＋';
-    document.getElementById('btn-add-pin').onclick=openRouteSheet;
+    setHint(`✅ 地点確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
+    // 地点確定したら即シートを開く
+    openRouteSheet();
   } else {
     pendingLL=e.latlng;
     setHint(`✅ 位置確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
     document.getElementById('btn-add-pin').disabled=false;
     document.getElementById('btn-add-pin').textContent='ピン追加＋';
     document.getElementById('btn-add-pin').onclick=openAddSheet;
-    // desktop
+    // desktop フォーム
     const db2=document.getElementById('desk-save-btn');
-    db2.disabled=false; db2.textContent='📍 このピンを追加する';
+    if(db2){ db2.disabled=false; db2.textContent='📍 このピンを追加する'; }
     const dh=document.getElementById('desk-hint');
-    dh.textContent='✅ 位置確定'; dh.className='form-hint ok';
+    if(dh){ dh.textContent='✅ 位置確定'; dh.className='form-hint ok'; }
   }
 });
 function setHint(txt,ok=false){
@@ -984,9 +983,22 @@ window.saveRoutePoint=function(){
   db.ref('routes/day'+activeDay+'/'+id).set(pt);
   ['rn','rnote'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('rt').value='';
-  closeSheets(); pendingRouteLL=null; routeMode=false;
-  document.getElementById('btn-rmode').classList.remove('on');
-  resetMapBar(); redrawRoute(activeDay); renderRouteContent();
+  closeSheets();
+  pendingRouteLL=null;
+  redrawRoute(activeDay);
+  renderRouteContent();
+  if(!isMobile()){
+    // PCはルートモード継続＋パネル再表示
+    routeMode=true;
+    document.getElementById('btn-rmode').classList.add('on');
+    setHint(`🛤️ 日${activeDay}ルート入力中 — 続けて地図をタップ`,true);
+    if(activePanel!=='route') togglePanel('route');
+  } else {
+    routeMode=false;
+    document.getElementById('btn-rmode').classList.remove('on');
+    resetMapBar();
+    mTab('route');
+  }
 };
 window.delRpt=function(day,id){
   routes[day]=routes[day].filter(p=>p.id!==id);
@@ -1022,14 +1034,32 @@ function renderRouteContent(){
     </td>
   </tr>`).join('');
   const addBtn=`<div class="radd"><h4>通過地点を追加（日${activeDay}）</h4>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">地図をタップして位置を選んでから「地点追加」</p>
-    <button class="btn-fab" style="width:100%" onclick="${isMobile()?"mTab('map')":"''"}; routeMode=true;document.getElementById('btn-rmode').classList.add('on');setHint('🛤️ 地図をタップして地点を選択',true)">🗺️ 地図で位置を選ぶ</button>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">①「地図で位置を選ぶ」を押して地図をタップ　②「地点追加＋」で登録</p>
+    <button class="btn-fab" style="width:100%" onclick="startRouteAdd()">🗺️ 地図で位置を選ぶ</button>
   </div>`;
   const legHtml=`<div class="leg"><div class="leg-item"><div class="leg-line" style="background:#e03c3c"></div>1日目</div><div class="leg-item"><div class="leg-line" style="background:#3d5a99"></div>2日目</div></div>`;
   const tableHtml=pts.length?`<div class="rsec"><div class="rsec-head" style="border-left:4px solid ${color}">⏱️ 日${activeDay} 時刻表 <span style="margin-left:auto;font-size:11px;color:var(--muted)">${pts.length}地点</span></div><div style="overflow-x:auto"><table class="tt"><thead><tr><th>#</th><th>地点名</th><th>通過予定</th><th>備考</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`:`<div class="empty"><div class="ei">🛤️</div>日${activeDay}の通過地点がありません</div>`;
   const content=legHtml+addBtn+tableHtml;
   ['route-content-d','route-content-m'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=content;});
 }
+
+window.startRouteAdd=function(){
+  // パネルを閉じて地図モードに切り替え
+  routeMode=true;
+  document.getElementById('btn-rmode').classList.add('on');
+  setHint(`🛤️ 日${activeDay}ルート入力中 — 地図をタップして地点を選択`,true);
+  // PCはパネルを閉じる、スマホは地図タブへ
+  if(isMobile()){
+    mTab('map');
+  } else {
+    // パネルを閉じてマップ全画面に
+    const panel=document.getElementById('slide-panel');
+    panel.classList.remove('show');
+    document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+    activePanel=null;
+    setTimeout(()=>map.invalidateSize(),50);
+  }
+};
 
 /* ══ FIREBASE LISTENERS ══ */
 db.ref('pins').on('value',snap=>{
