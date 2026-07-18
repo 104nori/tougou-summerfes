@@ -326,11 +326,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     </div>
     <!-- seg manager -->
     <div class="seg-mgr">
-      <h4>🛤️ 区間管理</h4>
-      <div class="seg-items" id="seg-items-d"></div>
-      <div class="seg-add">
-        <input id="seg-inp-d" placeholder="例）A→B 往路"/>
-        <button type="button" onclick="addSeg()">＋</button>
+      <h4 style="display:flex;align-items:center;cursor:pointer" onclick="toggleSegMgr('d')">
+        🛤️ 区間管理
+        <span id="seg-tog-d" style="margin-left:auto;font-size:13px">▲</span>
+      </h4>
+      <div id="seg-body-d">
+        <div class="seg-items" id="seg-items-d"></div>
+        <div class="seg-add">
+          <input id="seg-inp-d" placeholder="例）A→B 往路"/>
+          <button type="button" onclick="addSeg()">＋</button>
+        </div>
       </div>
     </div>
     <!-- filters -->
@@ -356,11 +361,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   <!-- MOBILE: LIST -->
   <div id="list-mobile">
     <div class="seg-mgr">
-      <h4>🛤️ 区間管理</h4>
-      <div class="seg-items" id="seg-items-m"></div>
-      <div class="seg-add">
-        <input id="seg-inp-m" placeholder="例）A→B 往路"/>
-        <button type="button" onclick="addSegM()">＋</button>
+      <h4 style="display:flex;align-items:center;cursor:pointer" onclick="toggleSegMgr('m')">
+        🛤️ 区間管理
+        <span id="seg-tog-m" style="margin-left:auto;font-size:13px">▼</span>
+      </h4>
+      <div id="seg-body-m" style="display:none">
+        <div class="seg-items" id="seg-items-m"></div>
+        <div class="seg-add">
+          <input id="seg-inp-m" placeholder="例）A→B 往路"/>
+          <button type="button" onclick="addSegM()">＋</button>
+        </div>
       </div>
     </div>
     <div class="fbar">
@@ -864,6 +874,16 @@ function updateStats(){
   const t0=document.getElementById('tc0'); if(t0) t0.textContent=pins.length;
   const t0m=document.getElementById('tc0m'); if(t0m) t0m.textContent=pins.length;
 }
+
+/* ══ SEG MGR TOGGLE ══ */
+window.toggleSegMgr=function(t){
+  const body=document.getElementById('seg-body-'+t);
+  const tog=document.getElementById('seg-tog-'+t);
+  if(!body||!tog) return;
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  tog.textContent=open?'▲':'▼';
+};
 
 /* ══ SEGMENTS ══ */
 function updateSegSelects(curVal=''){
