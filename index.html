@@ -42,7 +42,6 @@ header{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--HH);
   background:white;border-left:1px solid var(--border);
   display:none;flex-direction:column;
   box-shadow:-4px 0 20px rgba(0,0,0,.15);
-  transition:transform .25s cubic-bezier(.4,0,.2,1);
 }
 #slide-panel.show{display:flex}
 @media(max-width:767px){
@@ -66,7 +65,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--HH);
 
 /* LAYOUT */
 .wrap{position:fixed;top:var(--HH);left:0;right:0;bottom:var(--NH);display:flex;overflow:hidden}
-#map{flex:1;z-index:1}
+#map{flex:1;min-height:0}
 
 /* MAP BAR */
 .mapbar{flex-shrink:0;z-index:30;background:white;
@@ -639,13 +638,20 @@ function addMarker(pin){
 /* ══ MAP CLICK ══ */
 map.on('click', e=>{
   if(document.getElementById('pin-panel').style.display==='block'){ closePinPanel(); return; }
+  // slide-panelが開いていたら閉じる
+  const sp=document.getElementById('slide-panel');
+  if(sp.classList.contains('show')){
+    sp.classList.remove('show');
+    document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+    activePanel=null;
+    setTimeout(()=>map.invalidateSize(),50);
+  }
   if(routeMode){
     pendingRouteLL=e.latlng;
     setHint(`✅ 地点確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
     openRouteSheet();
   } else {
     pendingLL=e.latlng;
-    // 即座にシートを開く
     updateSegSelects();
     openAddSheet();
   }
