@@ -265,7 +265,6 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <button class="hbtn" id="hbtn-pins" onclick="togglePanel('pins')">📋 配置</button>
     <button class="hbtn" id="hbtn-route" onclick="togglePanel('route')">🛤️ ルート</button>
     <button class="hbtn" id="hbtn-seg" onclick="togglePanel('seg')">🗂️ 区間</button>
-    <button class="hbtn" id="btn-add-pin" disabled onclick="openAddSheet()" style="background:var(--accent);color:var(--navy);border-color:var(--accent)">ピン追加＋</button>
   </div>
   <div class="hstats">
     <div class="hchip c1">🔴<strong id="sc1">0</strong></div>
@@ -283,7 +282,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   <!-- MAP VIEW -->
   <div id="map-view" class="on">
     <div class="mapbar" id="mapbar">
-      <div class="mapbar-hint" id="mhint">📍 地図をタップして位置を選択</div>
+      <div class="mapbar-hint" id="mhint">📍 地図をタップしてピンを追加</div>
       <button class="btn-tog" id="btn-rmode" onclick="toggleRouteMode()">🛤️ ルート</button>
     </div>
     <div id="map" style="flex:1;min-height:0"></div>
@@ -588,34 +587,25 @@ map.on('click', e=>{
   if(routeMode){
     pendingRouteLL=e.latlng;
     setHint(`✅ 地点確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
-    // 地点確定したら即シートを開く
     openRouteSheet();
   } else {
     pendingLL=e.latlng;
-    setHint(`✅ 位置確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
-    document.getElementById('btn-add-pin').disabled=false;
-    document.getElementById('btn-add-pin').textContent='ピン追加＋';
-    document.getElementById('btn-add-pin').onclick=openAddSheet;
-    // desktop フォーム
-    const db2=document.getElementById('desk-save-btn');
-    if(db2){ db2.disabled=false; db2.textContent='📍 このピンを追加する'; }
-    const dh=document.getElementById('desk-hint');
-    if(dh){ dh.textContent='✅ 位置確定'; dh.className='form-hint ok'; }
+    // 即座にシートを開く
+    updateSegSelects();
+    openAddSheet();
   }
 });
 function setHint(txt,ok=false){
   const h=document.getElementById('mhint');
-  h.textContent=txt; h.className='mapbar-hint'+(ok?' ok':'');
+  if(h){ h.textContent=txt; h.className='mapbar-hint'+(ok?' ok':''); }
 }
 function resetMapBar(){
-  setHint('📍 地図をタップして位置を選択');
-  const b=document.getElementById('btn-add-pin');
-  b.disabled=true; b.textContent='ピン追加＋'; b.onclick=openAddSheet;
+  setHint('📍 地図をタップしてピンを追加');
   pendingLL=null; pendingRouteLL=null;
   const db2=document.getElementById('desk-save-btn');
-  db2.disabled=true; db2.textContent='地図をクリックして位置を指定';
+  if(db2){ db2.disabled=true; db2.textContent='地図をクリックして位置を指定'; }
   const dh=document.getElementById('desk-hint');
-  dh.textContent='⬆️ 地図をクリックして位置選択'; dh.className='form-hint';
+  if(dh){ dh.textContent='⬆️ 地図をクリックして位置選択'; dh.className='form-hint'; }
 }
 
 /* ══ ROUTE MODE ══ */
