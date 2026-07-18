@@ -230,6 +230,12 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
 .sh-body .sf input,.sh-body .sf textarea,.sh-body .sf select{font-size:15px;padding:10px 13px;border-radius:10px}
 .sh-body .prow .pr+label{padding:9px 4px;font-size:12px}
 #sp1:checked+label{background:#fff0f0;border-color:var(--p1b);color:#b52020}
+#rt-start:checked+label{background:#e8f5e9;border-color:#2eb87a;color:#1b5e20}
+#rt-pass:checked+label{background:#e3f2fd;border-color:#3d5a99;color:#0d2e6e}
+#rt-end:checked+label{background:#fce4ec;border-color:#e03c3c;color:#b52020}
+#rd-1:checked+label{background:#fff0f0;border-color:#e03c3c;color:#b52020}
+#rd-2:checked+label{background:#e3f2fd;border-color:#3d5a99;color:#0d2e6e}
+#rd-both:checked+label{background:#f3e5f5;border-color:#9c27b0;color:#4a148c}
 #sp2:checked+label{background:#fff8e6;border-color:var(--p2b);color:#8a5e00}
 #sp3:checked+label{background:#f0f8ff;border-color:var(--p3b);color:#1a5280}
 .sh-body .to+label{padding:9px 5px;font-size:12px}
@@ -502,12 +508,52 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
 <!-- Sheet: route point -->
 <div class="sheet" id="sheet-route">
   <div class="sh-handle"></div>
-  <div class="sh-title" id="sheet-route-title">🛤️ 通過地点を追加</div>
+  <div class="sh-title" id="sheet-route-title">🛤️ ルート地点を追加</div>
   <div class="sh-body">
-    <div class="sf"><label>地点名</label><input id="rn" placeholder="例）神社前、○○交差点"/></div>
-    <div class="sf"><label>通過予定時刻</label><input type="time" id="rt"/></div>
-    <div class="sf"><label>備考</label><input id="rnote" placeholder="例）一時停止あり"/></div>
-    <button class="btn-sheet" onclick="saveRoutePoint()">📍 この地点を追加する</button>
+    <!-- 地点種別 -->
+    <div class="sf"><label>📍 地点の種別</label>
+      <div style="display:flex;gap:8px">
+        <input type="radio" name="rtype" id="rt-start" value="start" class="pr" checked>
+        <label for="rt-start" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🚩 始発</label>
+        <input type="radio" name="rtype" id="rt-pass" value="pass" class="pr">
+        <label for="rt-pass" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">📍 通過</label>
+        <input type="radio" name="rtype" id="rt-end" value="end" class="pr">
+        <label for="rt-end" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🏁 終着</label>
+      </div>
+    </div>
+    <!-- 日程 -->
+    <div class="sf"><label>📅 日程</label>
+      <div style="display:flex;gap:8px">
+        <input type="radio" name="rday" id="rd-1" value="1" class="pr" checked>
+        <label for="rd-1" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🔴 1日目</label>
+        <input type="radio" name="rday" id="rd-2" value="2" class="pr">
+        <label for="rd-2" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🔵 2日目</label>
+        <input type="radio" name="rday" id="rd-both" value="both" class="pr">
+        <label for="rd-both" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🟣 共通</label>
+      </div>
+    </div>
+    <!-- 区間 -->
+    <div class="sf"><label>🛤️ 区間</label>
+      <select id="rseg" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-size:15px;font-family:inherit;background:white">
+        <option value="">未設定</option>
+      </select>
+    </div>
+    <!-- 地点名 -->
+    <div class="sf"><label>📝 地点名</label>
+      <input id="rn" placeholder="例）神社前、○○交差点" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-size:15px;font-family:inherit"/>
+    </div>
+    <!-- 時刻 -->
+    <div class="sf"><label>⏰ 通過予定時刻</label>
+      <input type="time" id="rt" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-size:15px;font-family:inherit"/>
+    </div>
+    <!-- 備考 -->
+    <div class="sf"><label>📋 備考</label>
+      <input id="rnote" placeholder="例）一時停止あり" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-size:15px;font-family:inherit"/>
+    </div>
+    <!-- ボタン -->
+    <div id="route-btn-area">
+      <button class="btn-sheet" onclick="saveRoutePoint()">📍 この地点を追加して次へ</button>
+    </div>
   </div>
 </div>
 
@@ -613,7 +659,7 @@ window.toggleRouteMode=function(){
   routeMode=!routeMode;
   const b=document.getElementById('btn-rmode');
   b.classList.toggle('on',routeMode);
-  if(routeMode){ setHint(`🛤️ 日${activeDay}ルート入力中 — 地図をタップ`,true); }
+  if(routeMode){ setHint(`🛤️ ルート入力中 — 始発地点をタップしてください`,true); }
   else { resetMapBar(); }
 };
 
@@ -669,7 +715,15 @@ window.closeSheets=function(){
 };
 window.openAddSheet=function(){ updateSegSelects(); openSheet('pin'); };
 window.openRouteSheet=function(){
-  document.getElementById('sheet-route-title').textContent=`🛤️ 日${activeDay}の通過地点を追加`;
+  // 区間セレクトを更新
+  const rsel=document.getElementById('rseg');
+  if(rsel){
+    rsel.innerHTML='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  }
+  // 日程を現在のactiveDayに合わせる
+  const rdEl=document.getElementById('rd-'+activeDay);
+  if(rdEl) rdEl.checked=true;
+  document.getElementById('sheet-route-title').textContent='🛤️ ルート地点を追加';
   openSheet('route');
 };
 
@@ -965,29 +1019,59 @@ window.setDay=function(d){
 };
 window.saveRoutePoint=function(){
   if(!pendingRouteLL) return;
+  const rtype=document.querySelector('input[name="rtype"]:checked').value; // start/pass/end
+  const rday=document.querySelector('input[name="rday"]:checked').value;   // 1/2/both
+  const rseg=document.getElementById('rseg').value;
+  const name=document.getElementById('rn').value.trim();
+  const time=document.getElementById('rt').value;
+  const note=document.getElementById('rnote').value.trim();
+  const typeLabel={start:'🚩 始発',pass:'📍 通過',end:'🏁 終着'}[rtype];
   const id='rpt-'+Date.now();
-  const pt={id,name:document.getElementById('rn').value.trim()||`地点${routes[activeDay].length+1}`,
-    time:document.getElementById('rt').value, note:document.getElementById('rnote').value.trim(),
+  const pt={id,
+    name:name||(typeLabel+(routes[1].length+routes[2].length+1)),
+    time, note, rtype, rday, rseg,
     lat:pendingRouteLL.lat, lng:pendingRouteLL.lng};
-  routes[activeDay].push(pt);
-  db.ref('routes/day'+activeDay+'/'+id).set(pt);
+  // 登録先を決定（1日目・2日目・両方）
+  const days=rday==='both'?[1,2]:[parseInt(rday)];
+  days.forEach(d=>{
+    const pid=d===days[0]?id:'rpt-'+Date.now()+'-'+d;
+    const p={...pt,id:pid};
+    routes[d].push(p);
+    db.ref('routes/day'+d+'/'+pid).set(p);
+  });
+  // リセット
   ['rn','rnote'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('rt').value='';
-  closeSheets();
   pendingRouteLL=null;
-  redrawRoute(activeDay);
+  redrawRoute(1); redrawRoute(2);
   renderRouteContent();
-  if(!isMobile()){
-    // PCはルートモード継続＋パネル再表示
-    routeMode=true;
-    document.getElementById('btn-rmode').classList.add('on');
-    setHint(`🛤️ 日${activeDay}ルート入力中 — 続けて地図をタップ`,true);
-    if(activePanel!=='route') togglePanel('route');
-  } else {
+  if(rtype==='end'){
+    // 終着 → ルートモード終了
+    closeSheets();
     routeMode=false;
     document.getElementById('btn-rmode').classList.remove('on');
     resetMapBar();
-    mTab('route');
+    if(!isMobile()) togglePanel('route');
+    else mTab('route');
+  } else {
+    // 始発・通過 → シートを閉じて次の地点をタップ待ち
+    closeSheets();
+    const nextType=rtype==='start'?'pass':'pass';
+    document.getElementById('rt-'+nextType).checked=true;
+    routeMode=true;
+    document.getElementById('btn-rmode').classList.add('on');
+    const typeNext={start:'通過地点',pass:'次の通過地点または終着地点'}[rtype];
+    setHint(`🛤️ 次は${typeNext}をタップしてください`,true);
+    if(!isMobile()){
+      // PCはパネルを閉じてマップを全画面に
+      const panel=document.getElementById('slide-panel');
+      panel.classList.remove('show');
+      document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+      activePanel=null;
+      setTimeout(()=>map.invalidateSize(),50);
+    } else {
+      mTab('map');
+    }
   }
 };
 window.delRpt=function(day,id){
@@ -1013,16 +1097,21 @@ function redrawRoute(day){
 }
 function renderRouteContent(){
   const pts=routes[activeDay]; const color=activeDay===1?'#e03c3c':'#3d5a99';
-  const rows=pts.map((pt,i)=>`<tr>
-    <td style="text-align:center;font-weight:800;color:${color}">${i+1}</td>
-    <td style="font-weight:700">${pt.name}</td>
+  const typeIcon={start:'🚩',pass:'📍',end:'🏁'};
+  const rows=pts.map((pt,i)=>{
+    const seg=segments.find(s=>s.id===pt.rseg);
+    const segBadge=seg?`<span style="font-size:10px;font-weight:800;padding:1px 5px;border-radius:4px;background:${seg.color}22;color:${seg.color};border:1px solid ${seg.color}">${seg.name}</span>`:'';
+    const dayBadge=pt.rday==='both'?'<span style="font-size:10px;background:#f3e5f5;color:#9c27b0;border-radius:4px;padding:1px 5px;font-weight:800">共通</span>':'';
+    return `<tr>
+    <td style="text-align:center;font-weight:800;color:${color}">${typeIcon[pt.rtype]||i+1}</td>
+    <td style="font-weight:700">${pt.name}<br><span style="font-size:11px;font-weight:400;color:var(--muted)">${[segBadge,dayBadge].filter(Boolean).join(' ')}</span></td>
     <td>${pt.time||'—'}</td>
     <td style="color:var(--muted)">${pt.note||''}</td>
     <td style="white-space:nowrap">
       <button class="pbtn" onclick="locRpt(${activeDay},'${pt.id}')">🔍</button>
       <button class="pbtn" onclick="delRpt(${activeDay},'${pt.id}');renderRouteContent()">🗑️</button>
     </td>
-  </tr>`).join('');
+  </tr>`;}).join('');
   const addBtn=`<div class="radd"><h4>通過地点を追加（日${activeDay}）</h4>
     <p style="font-size:12px;color:var(--muted);margin-bottom:8px">①「地図で位置を選ぶ」を押して地図をタップ　②「地点追加＋」で登録</p>
     <button class="btn-fab" style="width:100%" onclick="startRouteAdd()">🗺️ 地図で位置を選ぶ</button>
