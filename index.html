@@ -254,6 +254,12 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
 #rd-1:checked+label{background:#fff0f0;border-color:#e03c3c;color:#b52020}
 #rd-2:checked+label{background:#e3f2fd;border-color:#3d5a99;color:#0d2e6e}
 #rd-both:checked+label{background:#f3e5f5;border-color:#9c27b0;color:#4a148c}
+.rtype-label{flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);
+  cursor:pointer;font-size:13px;font-weight:800;text-align:center;
+  background:white;color:var(--muted);user-select:none;display:flex;align-items:center;justify-content:center}
+.rday-label{flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);
+  cursor:pointer;font-size:12px;font-weight:800;text-align:center;
+  background:white;color:var(--muted);user-select:none;display:flex;align-items:center;justify-content:center}
 #sp2:checked+label{background:#fff8e6;border-color:var(--p2b);color:#8a5e00}
 #sp3:checked+label{background:#f0f8ff;border-color:var(--p3b);color:#1a5280}
 .sh-body .to+label{padding:9px 5px;font-size:12px}
@@ -531,22 +537,22 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="sf"><label>📍 地点の種別</label>
       <div style="display:flex;gap:8px">
         <input type="radio" name="rtype" id="rt-start" value="start" class="pr" checked>
-        <label for="rt-start" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🚩 始発</label>
+        <label for="rt-start" class="rtype-label">🚩 始発</label>
         <input type="radio" name="rtype" id="rt-pass" value="pass" class="pr">
-        <label for="rt-pass" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">📍 通過</label>
+        <label for="rt-pass" class="rtype-label">📍 通過</label>
         <input type="radio" name="rtype" id="rt-end" value="end" class="pr">
-        <label for="rt-end" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:13px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🏁 終着</label>
+        <label for="rt-end" class="rtype-label">🏁 終着</label>
       </div>
     </div>
     <!-- 日程 -->
     <div class="sf"><label>📅 日程</label>
       <div style="display:flex;gap:8px">
         <input type="radio" name="rday" id="rd-1" value="1" class="pr" checked>
-        <label for="rd-1" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🔴 1日目</label>
+        <label for="rd-1" class="rday-label">🔴 1日目</label>
         <input type="radio" name="rday" id="rd-2" value="2" class="pr">
-        <label for="rd-2" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🔵 2日目</label>
+        <label for="rd-2" class="rday-label">🔵 2日目</label>
         <input type="radio" name="rday" id="rd-both" value="both" class="pr">
-        <label for="rd-both" style="flex:1;padding:10px 4px;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:12px;font-weight:800;text-align:center;background:white;color:var(--muted);user-select:none">🟣 共通</label>
+        <label for="rd-both" class="rday-label">🟣 共通</label>
       </div>
     </div>
     <!-- 区間 -->
