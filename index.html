@@ -1178,10 +1178,16 @@ window.editRpt=function(day,id){
     rsel.value=pt.rseg||'';
   }
   document.getElementById('sheet-route-title').textContent='✏️ ルート地点を編集';
-  // 保存ボタンを「変更を保存」に
-  const sbtn=document.getElementById('route-save-btn');
-  if(sbtn) sbtn.textContent='💾 変更を保存する';
   openSheet('route');
+  // シートが開いた後にボタンを設定
+  setTimeout(()=>{
+    bindSelBtns();
+    const sbtn=document.getElementById('route-save-btn');
+    if(sbtn){
+      sbtn.textContent='💾 変更を保存する';
+      sbtn.onclick=saveRoutePoint;
+    }
+  },60);
 };
 window.locRpt=function(day,id){
   const pt=routes[day].find(p=>p.id===id); if(!pt) return;
@@ -1194,9 +1200,19 @@ function redrawRoute(day){
   rMarkers[day].forEach(m=>map.removeLayer(m)); rMarkers[day]=[];
   const pts=routes[day]; if(!pts.length) return;
   rPolylines[day]=L.polyline(pts.map(p=>[p.lat,p.lng]),{color,weight:5,opacity:.75,dashArray:day===1?null:'8,6'}).addTo(map);
+  let seqN=0;
   pts.forEach((pt,i)=>{
-    const icon=L.divIcon({className:'',html:`<div style="background:${color};color:white;border:2px solid white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.3)">${i+1}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
-    rMarkers[day].push(L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindPopup(`<b>日${day} 地点${i+1}: ${pt.name}</b>${pt.time?'<br>⏰ '+pt.time:''}${pt.note?'<br>📝 '+pt.note:''}`,{maxWidth:200}));
+    const isPass=pt.rtype==='pass';
+    let iconHtml;
+    if(isPass){
+      // 通過地点：小さいドットのみ、番号なし
+      iconHtml=`<div style="background:${color};border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`;
+    } else {
+      seqN++;
+      iconHtml=`<div style="background:${color};color:white;border:2px solid white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.3)">${seqN}</div>`;
+    }
+    const icon=L.divIcon({className:'',html:iconHtml,iconSize:isPass?[12,12]:[22,22],iconAnchor:isPass?[6,6]:[11,11]});
+    rMarkers[day].push(L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindPopup(`<b>${isPass?'通過':'地点'+seqN}: ${pt.name}</b>${pt.time?'<br>⏰ '+pt.time:''}${pt.note?'<br>📝 '+pt.note:''}`,{maxWidth:200}));
   });
 }
 function renderRouteContent(){
