@@ -292,6 +292,9 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <button class="hbtn" id="hbtn-pins" onclick="togglePanel('pins')">📋 配置</button>
     <button class="hbtn" id="hbtn-route" onclick="togglePanel('route')">🛤️ ルート</button>
     <button class="hbtn" id="hbtn-seg" onclick="togglePanel('seg')">🗂️ 区間</button>
+    <button class="hbtn" onclick="exportData()" title="データをエクスポート">📤</button>
+    <button class="hbtn" onclick="document.getElementById('import-file').click()" title="データをインポート">📥</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
   </div>
   <div class="hstats">
     <div class="hchip c1">🔴<strong id="sc1">0</strong></div>
@@ -567,7 +570,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     </div>
     <!-- ボタン -->
     <div id="route-btn-area">
-      <button class="btn-sheet" onclick="saveRoutePoint()">📍 この地点を追加して次へ</button>
+      <button class="btn-sheet" id="route-save-btn" onclick="saveRoutePoint()">📍 この地点を追加して次へ</button>
     </div>
   </div>
 </div>
@@ -1052,9 +1055,33 @@ window.setDay=function(d){
   renderRouteContent();
 };
 window.saveRoutePoint=function(){
-  if(!pendingRouteLL) return;
   const rtype=getSelVal('rtype')||'pass';
   const rday=getSelVal('rday')||'1';
+
+
+  // 編集モード
+  if(editingRpt){
+    const {day,id}=editingRpt;
+    const pt=routes[day].find(p=>p.id===id);
+    if(pt){
+      pt.rtype=rtype; pt.rday=rday; pt.rseg=rseg;
+      pt.name=name||pt.name; pt.time=time; pt.note=note;
+      db.ref('routes/day'+day+'/'+id).update({rtype,rday,rseg,name:pt.name,time,note});
+    }
+    editingRpt=null;
+    ['rn','rnote'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('rt').value='';
+    const sbtn=document.getElementById('route-save-btn');
+    if(sbtn) sbtn.textContent='📍 この地点を追加して次へ';
+    document.getElementById('sheet-route-title').textContent='🛤️ ルート地点を追加';
+    closeSheets();
+    redrawRoute(1); redrawRoute(2); renderRouteContent();
+    if(!isMobile()) togglePanel('route');
+    else mTab('route');
+    return;
+  }
+
+  if(!pendingRouteLL) return;
   const rseg=document.getElementById('rseg').value;
   const name=document.getElementById('rn').value.trim();
   const time=document.getElementById('rt').value;
@@ -1115,6 +1142,35 @@ window.delRpt=function(day,id){
   db.ref('routes/day'+day+'/'+id).remove();
   redrawRoute(day); renderRouteContent();
 };
+
+let editingRpt=null;
+window.editRpt=function(day,id){
+  const pt=routes[day].find(p=>p.id===id); if(!pt) return;
+  editingRpt={day,id};
+  // フォームに値をセット
+  document.getElementById('rn').value=pt.name||'';
+  document.getElementById('rt').value=pt.time||'';
+  document.getElementById('rnote').value=pt.note||'';
+  // 種別セット
+  document.querySelectorAll('[data-group="rtype"]').forEach(b=>b.classList.remove('sel-active'));
+  const tb=document.querySelector(`[data-group="rtype"][data-val="${pt.rtype||'pass'}"]`);
+  if(tb) tb.classList.add('sel-active');
+  // 日程セット
+  document.querySelectorAll('[data-group="rday"]').forEach(b=>b.classList.remove('sel-active'));
+  const db2=document.querySelector(`[data-group="rday"][data-val="${pt.rday||'1'}"]`);
+  if(db2) db2.classList.add('sel-active');
+  // 区間セット
+  const rsel=document.getElementById('rseg');
+  if(rsel){
+    rsel.innerHTML='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    rsel.value=pt.rseg||'';
+  }
+  document.getElementById('sheet-route-title').textContent='✏️ ルート地点を編集';
+  // 保存ボタンを「変更を保存」に
+  const sbtn=document.getElementById('route-save-btn');
+  if(sbtn) sbtn.textContent='💾 変更を保存する';
+  openSheet('route');
+};
 window.locRpt=function(day,id){
   const pt=routes[day].find(p=>p.id===id); if(!pt) return;
   if(isMobile()) mTab('map');
@@ -1133,17 +1189,28 @@ function redrawRoute(day){
 }
 function renderRouteContent(){
   const pts=routes[activeDay]; const color=activeDay===1?'#e03c3c':'#3d5a99';
-  const typeIcon={start:'🚩',pass:'📍',end:'🏁'};
+  const typeIcon={start:'🚩',pass:'',end:'🏁'};
+  // 始発・終着のみ通し番号を振る
+  let seqNum=0;
   const rows=pts.map((pt,i)=>{
     const seg=segments.find(s=>s.id===pt.rseg);
     const segBadge=seg?`<span style="font-size:10px;font-weight:800;padding:1px 5px;border-radius:4px;background:${seg.color}22;color:${seg.color};border:1px solid ${seg.color}">${seg.name}</span>`:'';
     const dayBadge=pt.rday==='both'?'<span style="font-size:10px;background:#f3e5f5;color:#9c27b0;border-radius:4px;padding:1px 5px;font-weight:800">共通</span>':'';
+    // 通過は番号なし、始発・終着は番号あり
+    let numCell='';
+    if(pt.rtype==='pass'){
+      numCell=`<span style="color:var(--muted);font-size:12px">📍</span>`;
+    } else {
+      seqNum++;
+      numCell=`<span style="font-weight:800;color:${color}">${typeIcon[pt.rtype]||''}${seqNum}</span>`;
+    }
     return `<tr>
-    <td style="text-align:center;font-weight:800;color:${color}">${typeIcon[pt.rtype]||i+1}</td>
+    <td style="text-align:center">${numCell}</td>
     <td style="font-weight:700">${pt.name}<br><span style="font-size:11px;font-weight:400;color:var(--muted)">${[segBadge,dayBadge].filter(Boolean).join(' ')}</span></td>
     <td>${pt.time||'—'}</td>
     <td style="color:var(--muted)">${pt.note||''}</td>
     <td style="white-space:nowrap">
+      <button class="pbtn" onclick="editRpt(${activeDay},'${pt.id}')">✏️</button>
       <button class="pbtn" onclick="locRpt(${activeDay},'${pt.id}')">🔍</button>
       <button class="pbtn" onclick="delRpt(${activeDay},'${pt.id}');renderRouteContent()">🗑️</button>
     </td>
@@ -1206,6 +1273,95 @@ db.ref('routes').on('value',snap=>{
   });
   renderRouteContent();
 });
+
+/* ══ EXPORT / IMPORT ══ */
+window.exportData=function(){
+  const data={
+    version:1,
+    exportedAt:new Date().toISOString(),
+    pins:pins.map(p=>({...p, latlng:undefined})),
+    segments,
+    routes
+  };
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const d=new Date();
+  const dateStr=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.download=`togo-matsuri-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('データをエクスポートしました ✅');
+};
+
+window.importData=function(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.version) throw new Error('フォーマットが正しくありません');
+      if(!confirm(`データをインポートします。
+現在のデータはFirebase上の全データが置き換えられます。
+続けますか？`)) return;
+
+      // Firebase を全クリアして書き込み
+      const updates={};
+
+      // ピン
+      if(data.pins&&data.pins.length){
+        data.pins.forEach(p=>{ updates['pins/'+p.id]=p; });
+      }
+      // 区間
+      if(data.segments&&data.segments.length){
+        data.segments.forEach(s=>{ updates['segments/'+s.id]=s; });
+      }
+      // ルート
+      if(data.routes){
+        [1,2].forEach(day=>{
+          const pts=data.routes[day]||[];
+          pts.forEach(pt=>{ updates['routes/day'+day+'/'+pt.id]=pt; });
+        });
+      }
+
+      // 既存データを削除してから書き込み
+      Promise.all([
+        db.ref('pins').remove(),
+        db.ref('segments').remove(),
+        db.ref('routes').remove()
+      ]).then(()=>{
+        if(Object.keys(updates).length){
+          return db.ref().update(updates);
+        }
+      }).then(()=>{
+        showToast('インポート完了 ✅');
+      }).catch(err=>{
+        alert('インポート失敗: '+err.message);
+      });
+    }catch(err){
+      alert('ファイルの読み込みに失敗しました: '+err.message);
+    }
+    input.value='';
+  };
+  reader.readAsText(file);
+};
+
+/* トースト通知 */
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toast';
+    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.opacity='1';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.style.opacity='0',2500);
+}
 
 /* ══ INIT ══ */
 if(isMobile()){
