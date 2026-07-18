@@ -269,6 +269,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="stabs">
       <button class="stab on" onclick="deskTab('pins',this)">📋 配置</button>
       <button class="stab" onclick="deskTab('route',this)">🛤️ ルート</button>
+      <button class="stab" onclick="deskTab('seg',this)">🗂️ 区間</button>
     </div>
     <!-- pin form -->
     <div class="form-area" id="desk-pin-form">
@@ -324,20 +325,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
       <button class="btn-save" id="desk-save-btn" disabled onclick="deskSavePin()">地図をクリックして位置を指定</button>
       <div class="form-hint" id="desk-hint">⬆️ 地図をクリックして位置選択</div>
     </div>
-    <!-- seg manager -->
-    <div class="seg-mgr">
-      <h4 style="display:flex;align-items:center;cursor:pointer" onclick="toggleSegMgr('d')">
-        🛤️ 区間管理
-        <span id="seg-tog-d" style="margin-left:auto;font-size:13px">▲</span>
-      </h4>
-      <div id="seg-body-d">
-        <div class="seg-items" id="seg-items-d"></div>
-        <div class="seg-add">
-          <input id="seg-inp-d" placeholder="例）A→B 往路"/>
-          <button type="button" onclick="addSeg()">＋</button>
-        </div>
-      </div>
-    </div>
+
     <!-- filters -->
     <div class="fbar" id="prio-fbar">
       <button class="ftab on" onclick="setPrioF('all',this)">全<span class="cnt" id="tc0">0</span></button>
@@ -358,21 +346,24 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     <div class="rv" id="route-content-d"></div>
   </div>
 
-  <!-- MOBILE: LIST -->
-  <div id="list-mobile">
-    <div class="seg-mgr">
-      <h4 style="display:flex;align-items:center;cursor:pointer" onclick="toggleSegMgr('m')">
-        🛤️ 区間管理
-        <span id="seg-tog-m" style="margin-left:auto;font-size:13px">▼</span>
-      </h4>
-      <div id="seg-body-m" style="display:none">
-        <div class="seg-items" id="seg-items-m"></div>
+  <!-- DESKTOP: SEG PANEL -->
+  <div class="sidebar" id="seg-sidebar" style="display:none;flex-direction:column">
+    <div style="background:var(--navy2);color:white;padding:12px 14px;font-size:13px;font-weight:800;flex-shrink:0">🛤️ 区間管理</div>
+    <div style="flex:1;overflow-y:auto;padding:12px">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
+      <div id="seg-items-d" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <div style="background:#f7f9fc;border-radius:10px;padding:10px;border:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">区間を追加</div>
         <div class="seg-add">
-          <input id="seg-inp-m" placeholder="例）A→B 往路"/>
-          <button type="button" onclick="addSegM()">＋</button>
+          <input id="seg-inp-d" placeholder="例）A→B 往路"/>
+          <button type="button" onclick="addSeg()">＋</button>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- MOBILE: LIST -->
+  <div id="list-mobile">
     <div class="fbar">
       <button class="ftab on" onclick="setPrioF('all',this)">全<span class="cnt" id="tc0m">0</span></button>
       <button class="ftab" onclick="setPrioF('1',this)">🔴必須<span class="cnt" id="tc1m">0</span></button>
@@ -391,6 +382,22 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
     </div>
     <div class="rv" id="route-content-m"></div>
   </div>
+
+  <!-- MOBILE: SEG -->
+  <div id="seg-mobile" style="display:none;position:absolute;inset:0;flex-direction:column;background:var(--bg)">
+    <div style="background:var(--navy2);color:white;padding:12px 14px;font-size:14px;font-weight:800;flex-shrink:0">🛤️ 区間管理</div>
+    <div style="flex:1;overflow-y:auto;padding:12px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">太鼓台のルート区間を登録します。ピンを立てる時に区間を選べます。</p>
+      <div id="seg-items-m" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">区間を追加</div>
+        <div style="display:flex;gap:8px">
+          <input id="seg-inp-m" placeholder="例）A→B 往路" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:14px;font-family:inherit"/>
+          <button type="button" onclick="addSegM()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -398,6 +405,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
   <button class="nb on" id="nb-map" onclick="mTab('map')"><span class="ni">🗺️</span>地図</button>
   <button class="nb" id="nb-list" onclick="mTab('list')"><span class="ni">📋</span>配置</button>
   <button class="nb" id="nb-route" onclick="mTab('route')"><span class="ni">🛤️</span>ルート</button>
+  <button class="nb" id="nb-seg" onclick="mTab('seg')"><span class="ni">🛤️</span>区間</button>
 </nav>
 
 <!-- OVERLAY + SHEETS -->
@@ -589,10 +597,11 @@ window.toggleRouteMode=function(){
 
 /* ══ MOBILE TABS ══ */
 window.mTab=function(tab){
-  ['map','list','route'].forEach(t=>{
-    const v=document.getElementById(t==='map'?'map-view':t==='list'?'list-mobile':'route-mobile');
+  const views={map:'map-view',list:'list-mobile',route:'route-mobile',seg:'seg-mobile'};
+  Object.entries(views).forEach(([t,vid])=>{
+    const v=document.getElementById(vid);
     const n=document.getElementById('nb-'+t);
-    if(v) v.classList.toggle('on',t===tab);
+    if(v) v.style.display=t===tab?'flex':'none';
     if(n) n.classList.toggle('on',t===tab);
   });
   if(tab==='map') setTimeout(()=>map.invalidateSize(),50);
@@ -605,6 +614,7 @@ window.deskTab=function(tab,el){
   if(el) el.classList.add('on');
   document.getElementById('sidebar-pins').style.display=tab==='pins'?'flex':'none';
   document.getElementById('route-sidebar').style.display=tab==='route'?'flex':'none';
+  document.getElementById('seg-sidebar').style.display=tab==='seg'?'flex':'none';
   if(tab==='route') renderRouteContent();
 };
 
@@ -875,16 +885,6 @@ function updateStats(){
   const t0m=document.getElementById('tc0m'); if(t0m) t0m.textContent=pins.length;
 }
 
-/* ══ SEG MGR TOGGLE ══ */
-window.toggleSegMgr=function(t){
-  const body=document.getElementById('seg-body-'+t);
-  const tog=document.getElementById('seg-tog-'+t);
-  if(!body||!tog) return;
-  const open=body.style.display==='none';
-  body.style.display=open?'block':'none';
-  tog.textContent=open?'▲':'▼';
-};
-
 /* ══ SEGMENTS ══ */
 function updateSegSelects(curVal=''){
   const opts='<option value="">未設定</option>'+segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
@@ -892,8 +892,12 @@ function updateSegSelects(curVal=''){
 }
 function renderSegs(){
   const items=segments.length
-    ? segments.map(s=>`<div class="seg-item"><div class="seg-dot" style="background:${s.color}"></div><div class="seg-item-name">${s.name}</div><button class="seg-del-btn" onclick="delSeg('${s.id}')">✕</button></div>`).join('')
-    : '<div style="font-size:11px;color:var(--muted)">区間がありません</div>';
+    ? segments.map(s=>`<div style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid ${s.color}33;border-left:4px solid ${s.color};border-radius:10px;padding:10px 12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
+        <div style="flex:1;font-size:13px;font-weight:700">${s.name}</div>
+        <button type="button" onclick="delSeg('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:2px">✕</button>
+      </div>`).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">区間がありません<br>下のフォームから追加してください</div>';
   ['seg-items-d','seg-items-m'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=items; });
   // seg filter bars
   const fbHtml='<button class="ftab'+(segFilter==='all'?' on':'')+'" onclick="setSegF(\'all\',this)">全区間</button>'
@@ -1011,8 +1015,16 @@ db.ref('routes').on('value',snap=>{
 });
 
 /* ══ INIT ══ */
-if(isMobile()) mTab('map');
-else setTimeout(()=>map.invalidateSize(),100);
+if(isMobile()){
+  // 全ビューをいったん非表示にしてからmap表示
+  ['map-view','list-mobile','route-mobile','seg-mobile'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  const mv=document.getElementById('map-view'); if(mv) mv.style.display='flex';
+  setTimeout(()=>map.invalidateSize(),100);
+} else {
+  setTimeout(()=>map.invalidateSize(),100);
+}
 </script>
 </body>
 </html>
