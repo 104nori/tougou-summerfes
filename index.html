@@ -204,9 +204,9 @@ table.tt{width:100%;border-collapse:collapse;font-size:12px}
 table.tt th{background:var(--navy);color:white;padding:8px;text-align:left}
 table.tt td{padding:8px;border-bottom:1px solid var(--border)}
 table.tt tr:last-child td{border-bottom:none}
-.leg{display:flex;gap:12px;padding:8px 12px;background:white;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700}
-.leg-line{width:22px;height:3px;border-radius:2px}
+.leg{display:flex;gap:8px;padding:8px 12px;background:white;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap}
+.leg-toggle{flex:1;padding:7px 10px;border-radius:8px;border:2px solid;cursor:pointer;
+  font-size:12px;font-weight:800;font-family:inherit;transition:all .15s;text-align:center}
 
 /* BOTTOM NAV */
 nav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:var(--NH);
@@ -610,7 +610,9 @@ let pins=[], markers={}, activePinId=null, editingPinId=null, pendingLL=null;
 let activePanel=null;
 let segments=[], prioFilter='all', segFilter='all';
 let routeMode=false, pendingRouteLL=null;
-let routes={1:[],2:[]}, rPolylines={1:null,2:null}, rMarkers={1:[],2:[]};
+let routes={1:[],2:[]}, rPolylines={}, rMarkers={};
+let routeVisible={1:true,2:true};
+let segVisible={}; // segId -> bool (true=表示)
 let activeDay=1;
 const isMobile=()=>window.innerWidth<768;
 
@@ -622,17 +624,40 @@ function iconScale(){
   const z=map.getZoom();
   return Math.max(0.18,Math.min(0.85,(z-12)*0.09+0.20));
 }
+let colorMode='prio'; // kept for compatibility
+const PRIO_COLORS={1:'#e03c3c',2:'#e8a020',3:'#3d82b8'};
+
+function pinColor(pin){
+  return PRIO_COLORS[pin.prio||1]||'#e03c3c';
+}
+
+function pinSegColor(pin){
+  const seg=segments.find(s=>s.id===pin.seg);
+  return seg?seg.color:null;
+}
+
 function mkIcon(pin){
   const s=iconScale(), r=Math.round(7*s), th=Math.round(5*s), tw=Math.round(4*s), d=r*2, H=d+th;
-  const stroke=[3,2,1][(pin.prio||1)-1];
   const a=pin.face?ARROW[pin.face]:'';
   const afs=Math.max(5,Math.round(7*s));
+  const fillColor=pinColor(pin);         // 重要度の色（塗り）
+  const segColor=pinSegColor(pin);       // 区間の色（枠）
+  // 枠：区間あり→区間色・太め、なし→白
+  const borderColor=segColor||'white';
+  const borderWidth=segColor?Math.max(2,Math.round(3*s)):Math.max(1,Math.round(2*s));
+  // 区間ありの場合は外側にさらに白いリングを追加して見やすく
+  const ringHtml=segColor
+    ?`<div style="position:absolute;width:${d+borderWidth*2+2}px;height:${d+borderWidth*2+2}px;border-radius:50%;background:${segColor};top:${-(borderWidth+1)}px;left:${-(borderWidth+1)}px;z-index:0"></div>`
+    :'';
   return L.divIcon({className:'',
     html:`<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">
-      <div style="width:${d}px;height:${d}px;border-radius:50%;background:${pin.color||'#e03c3c'};border:${stroke}px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:${afs}px;font-weight:900;line-height:1">${a}</div>
-      <div style="width:0;height:0;border-left:${tw}px solid transparent;border-right:${tw}px solid transparent;border-top:${th}px solid ${pin.color||'#e03c3c'};margin-top:-1px"></div>
+      <div style="position:relative;width:${d}px;height:${d}px">
+        ${ringHtml}
+        <div style="position:absolute;inset:0;border-radius:50%;background:${fillColor};border:${borderWidth}px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:${afs}px;font-weight:900;line-height:1;z-index:1">${a}</div>
+      </div>
+      <div style="width:0;height:0;border-left:${tw}px solid transparent;border-right:${tw}px solid transparent;border-top:${th}px solid ${fillColor};margin-top:-1px"></div>
     </div>`,
-    iconSize:[d,H],iconAnchor:[r,H],popupAnchor:[0,-H-2]
+    iconSize:[d+8,H+4],iconAnchor:[r+4,H+4],popupAnchor:[0,-H-4]
   });
 }
 map.on('zoomend',()=>{ pins.forEach(p=>{ if(markers[p.id]) markers[p.id].setIcon(mkIcon(p)); }); });
@@ -640,23 +665,24 @@ map.on('zoomend',()=>{ pins.forEach(p=>{ if(markers[p.id]) markers[p.id].setIcon
 function addMarker(pin){
   const ll=pin.latlng||{lat:pin.lat,lng:pin.lng};
   const m=L.marker(ll,{icon:mkIcon(pin),draggable:true}).addTo(map);
-  m.on('click', e=>{ L.DomEvent.stopPropagation(e); openPinPanel(pin.id); if(isMobile()) mTab('map'); });
-  m.on('dragend', e=>{ const ll=e.target.getLatLng(); pin.lat=ll.lat; pin.lng=ll.lng; pin.latlng=ll; db.ref('pins/'+pin.id).update({lat:ll.lat,lng:ll.lng}); });
+  // 区間非表示なら即非表示
+  if(pin.seg && segVisible[pin.seg]===false) m.setOpacity(0).setInteractive?m.setInteractive(false):null;
+  m.on('click', e=>{
+    L.DomEvent.stopPropagation(e);
+    if(isMobile()) mTab('map');
+    editPin(pin.id);
+  });
+  m.on('dragend', e=>{
+    const ll=e.target.getLatLng();
+    pin.lat=ll.lat; pin.lng=ll.lng; pin.latlng=ll;
+    db.ref('pins/'+pin.id).update({lat:ll.lat,lng:ll.lng});
+  });
   m.on('dragstart', ()=>closePinPanel());
   markers[pin.id]=m;
 }
 
 /* ══ MAP CLICK ══ */
 map.on('click', e=>{
-  if(document.getElementById('pin-panel').style.display==='block'){ closePinPanel(); return; }
-  // slide-panelが開いていたら閉じる
-  const sp=document.getElementById('slide-panel');
-  if(sp.classList.contains('show')){
-    sp.classList.remove('show');
-    document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
-    activePanel=null;
-    setTimeout(()=>map.invalidateSize(),50);
-  }
   if(routeMode){
     pendingRouteLL=e.latlng;
     setHint(`✅ 地点確定 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,true);
@@ -945,6 +971,14 @@ window.setSegF=function(v,el){
   renderPins();
 };
 
+function refreshPinVisibility(){
+  pins.forEach(pin=>{
+    const m=markers[pin.id]; if(!m) return;
+    const hidden=pin.seg && segVisible[pin.seg]===false;
+    m.setOpacity(hidden?0:1);
+    if(m._icon) m._icon.style.pointerEvents=hidden?'none':'auto';
+  });
+}
 function renderPins(){
   let list=pins.slice();
   if(prioFilter!=='all') list=list.filter(p=>p.prio===parseInt(prioFilter));
@@ -952,6 +986,7 @@ function renderPins(){
   const html=buildPinListHtml(list);
   const d=document.getElementById('pin-list-d'); if(d) d.innerHTML=html;
   const m=document.getElementById('pin-list-m'); if(m) m.innerHTML=html;
+  refreshPinVisibility();
 }
 function buildPinListHtml(list){
   if(!list.length) return `<div class="empty"><div class="ei">📭</div>${pins.length?'条件に合うピンがありません':'ピンがありません<br>地図をタップして追加'}</div>`;
@@ -1069,7 +1104,10 @@ window.setDay=function(d){
 window.saveRoutePoint=function(){
   const rtype=getSelVal('rtype')||'pass';
   const rday=getSelVal('rday')||'1';
-
+  const rseg=document.getElementById('rseg').value;
+  const name=document.getElementById('rn').value.trim();
+  const time=document.getElementById('rt').value;
+  const note=document.getElementById('rnote').value.trim();
 
   // 編集モード
   if(editingRpt){
@@ -1087,17 +1125,13 @@ window.saveRoutePoint=function(){
     if(sbtn) sbtn.textContent='📍 この地点を追加して次へ';
     document.getElementById('sheet-route-title').textContent='🛤️ ルート地点を追加';
     closeSheets();
-    redrawRoute(1); redrawRoute(2); renderRouteContent();
+    redrawAllRoutes(); renderRouteContent();
     if(!isMobile()) togglePanel('route');
     else mTab('route');
     return;
   }
 
   if(!pendingRouteLL) return;
-  const rseg=document.getElementById('rseg').value;
-  const name=document.getElementById('rn').value.trim();
-  const time=document.getElementById('rt').value;
-  const note=document.getElementById('rnote').value.trim();
   const typeLabel={start:'🚩 始発',pass:'📍 通過',end:'🏁 終着'}[rtype];
   const id='rpt-'+Date.now();
   const pt={id,
@@ -1116,7 +1150,7 @@ window.saveRoutePoint=function(){
   ['rn','rnote'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('rt').value='';
   pendingRouteLL=null;
-  redrawRoute(1); redrawRoute(2);
+  redrawAllRoutes();
   renderRouteContent();
   if(rtype==='end'){
     // 終着 → ルートモード終了
@@ -1152,7 +1186,7 @@ window.saveRoutePoint=function(){
 window.delRpt=function(day,id){
   routes[day]=routes[day].filter(p=>p.id!==id);
   db.ref('routes/day'+day+'/'+id).remove();
-  redrawRoute(day); renderRouteContent();
+  redrawAllRoutes(); renderRouteContent();
 };
 
 let editingRpt=null;
@@ -1194,27 +1228,69 @@ window.locRpt=function(day,id){
   if(isMobile()) mTab('map');
   setTimeout(()=>map.setView([pt.lat,pt.lng],17),isMobile()?60:0);
 };
-function redrawRoute(day){
-  const color=day===1?'#e03c3c':'#3d5a99';
-  if(rPolylines[day]){map.removeLayer(rPolylines[day]);rPolylines[day]=null;}
-  rMarkers[day].forEach(m=>map.removeLayer(m)); rMarkers[day]=[];
-  const pts=routes[day]; if(!pts.length) return;
-  rPolylines[day]=L.polyline(pts.map(p=>[p.lat,p.lng]),{color,weight:5,opacity:.75,dashArray:day===1?null:'8,6'}).addTo(map);
-  let seqN=0;
-  pts.forEach((pt,i)=>{
-    const isPass=pt.rtype==='pass';
-    let iconHtml;
-    if(isPass){
-      // 通過地点：小さいドットのみ、番号なし
-      iconHtml=`<div style="background:${color};border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`;
-    } else {
-      seqN++;
-      iconHtml=`<div style="background:${color};color:white;border:2px solid white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.3)">${seqN}</div>`;
-    }
-    const icon=L.divIcon({className:'',html:iconHtml,iconSize:isPass?[12,12]:[22,22],iconAnchor:isPass?[6,6]:[11,11]});
-    rMarkers[day].push(L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindPopup(`<b>${isPass?'通過':'地点'+seqN}: ${pt.name}</b>${pt.time?'<br>⏰ '+pt.time:''}${pt.note?'<br>📝 '+pt.note:''}`,{maxWidth:200}));
+window.toggleRouteVis=function(day){
+  routeVisible[day]=!routeVisible[day];
+  redrawAllRoutes();
+  renderRouteContent();
+};
+window.toggleSegVis=function(segId){
+  segVisible[segId]=segVisible[segId]===false?true:false;
+  redrawAllRoutes();
+  renderPins();
+  renderRouteContent();
+};
+
+function redrawAllRoutes(){
+  // 全ルートを一旦クリア
+  Object.values(rPolylines).forEach(p=>{ if(p) map.removeLayer(p); });
+  rPolylines={};
+  Object.values(rMarkers).forEach(arr=>arr.forEach(m=>map.removeLayer(m)));
+  rMarkers={};
+
+  [1,2].forEach(day=>{
+    if(!routeVisible[day]) return;
+    const pts=routes[day]; if(!pts.length) return;
+
+    // 区間ごとにグループ分け
+    const groups={};
+    pts.forEach(pt=>{
+      const key=pt.rseg||'_noseg';
+      if(!groups[key]) groups[key]=[];
+      groups[key].push(pt);
+    });
+
+    Object.entries(groups).forEach(([segId,gpts])=>{
+      // segVisibleが未設定（ロード順序の問題）はtrueとみなす
+      if(segId!=='_noseg' && segVisible[segId]===false) return;
+      const seg=segments.find(s=>s.id===segId);
+      const baseColor=seg?seg.color:(day===1?'#e03c3c':'#3d5a99');
+      const dash=day===1?null:'8,6';
+
+      const key=day+'-'+segId;
+      rPolylines[key]=L.polyline(gpts.map(p=>[p.lat,p.lng]),{color:baseColor,weight:5,opacity:.8,dashArray:dash}).addTo(map);
+      if(!rMarkers[key]) rMarkers[key]=[];
+
+      let seqN=0;
+      gpts.forEach(pt=>{
+        const isPass=pt.rtype==='pass';
+        let iconHtml;
+        if(isPass){
+          iconHtml=`<div style="background:${baseColor};border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`;
+        } else {
+          seqN++;
+          iconHtml=`<div style="background:${baseColor};color:white;border:2px solid white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.3)">${seqN}</div>`;
+        }
+        const icon=L.divIcon({className:'',html:iconHtml,iconSize:isPass?[12,12]:[22,22],iconAnchor:isPass?[6,6]:[11,11]});
+        const segLabel=seg?`[${seg.name}] `:'';
+        rMarkers[key].push(L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindPopup(
+          `<b>${segLabel}${isPass?'通過':'地点'+seqN}: ${pt.name}</b>${pt.time?'<br>⏰ '+pt.time:''}${pt.note?'<br>📝 '+pt.note:''}`,
+          {maxWidth:200}
+        ));
+      });
+    });
   });
 }
+function redrawRoute(day){ redrawAllRoutes(); }
 function renderRouteContent(){
   const pts=routes[activeDay]; const color=activeDay===1?'#e03c3c':'#3d5a99';
   const typeIcon={start:'🚩',pass:'',end:'🏁'};
@@ -1247,7 +1323,26 @@ function renderRouteContent(){
     <p style="font-size:12px;color:var(--muted);margin-bottom:8px">①「地図で位置を選ぶ」を押して地図をタップ　②「地点追加＋」で登録</p>
     <button class="btn-fab" style="width:100%" onclick="startRouteAdd()">🗺️ 地図で位置を選ぶ</button>
   </div>`;
-  const legHtml=`<div class="leg"><div class="leg-item"><div class="leg-line" style="background:#e03c3c"></div>1日目</div><div class="leg-item"><div class="leg-line" style="background:#3d5a99"></div>2日目</div></div>`;
+  // 表示切り替えパネル
+  const vis1=routeVisible[1]; const vis2=routeVisible[2];
+  const dayBtns=`
+    <button type="button" class="leg-toggle" onclick="toggleRouteVis(1)" style="background:${vis1?'#e03c3c':'#f0f3f8'};color:${vis1?'white':'#aaa'};border-color:${vis1?'#e03c3c':'#d4dbe8'}">
+      <span style="display:inline-block;width:12px;height:3px;border-radius:2px;background:${vis1?'white':'#aaa'};vertical-align:middle;margin-right:4px"></span>1日目
+    </button>
+    <button type="button" class="leg-toggle" onclick="toggleRouteVis(2)" style="background:${vis2?'#3d5a99':'#f0f3f8'};color:${vis2?'white':'#aaa'};border-color:${vis2?'#3d5a99':'#d4dbe8'}">
+      <span style="display:inline-block;width:12px;height:3px;border-radius:2px;background:${vis2?'white':'#aaa'};vertical-align:middle;margin-right:4px"></span>2日目
+    </button>`;
+  const segBtns=segments.map(seg=>{
+    const on=segVisible[seg.id]!==false;
+    return `<button type="button" class="leg-toggle" onclick="toggleSegVis('${seg.id}')" style="background:${on?seg.color:'#f0f3f8'};color:${on?'white':'#aaa'};border-color:${on?seg.color:'#d4dbe8'}">
+      <span style="display:inline-block;width:12px;height:3px;border-radius:2px;background:${on?'white':'#aaa'};vertical-align:middle;margin-right:4px"></span>${seg.name}
+    </button>`;
+  }).join('');
+  const legHtml=`<div style="background:white;border-radius:10px;border:1px solid var(--border);padding:10px 12px;margin-bottom:8px">
+    <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🗓️ 日程</div>
+    <div class="leg">${dayBtns}</div>
+    ${segments.length?`<div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 6px">🛤️ 区間</div><div class="leg">${segBtns}</div>`:''}
+  </div>`;
   const tableHtml=pts.length?`<div class="rsec"><div class="rsec-head" style="border-left:4px solid ${color}">⏱️ 日${activeDay} 時刻表 <span style="margin-left:auto;font-size:11px;color:var(--muted)">${pts.length}地点</span></div><div style="overflow-x:auto"><table class="tt"><thead><tr><th>#</th><th>地点名</th><th>通過予定</th><th>備考</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`:`<div class="empty"><div class="ei">🛤️</div>日${activeDay}の通過地点がありません</div>`;
   const content=legHtml+addBtn+tableHtml;
   ['route-content-d','route-content-m'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=content;});
@@ -1276,10 +1371,12 @@ db.ref('pins').on('value',snap=>{
   pins.forEach(p=>{if(markers[p.id]){map.removeLayer(markers[p.id]);delete markers[p.id];}});
   pins=[];
   const data=snap.val()||{};
+  // まず全ピンをpins配列に追加してからマーカーを描画（オフセット計算のため）
   Object.values(data).forEach(d=>{
     const pin={...d,bans:normBans(d.bans),latlng:{lat:d.lat,lng:d.lng}};
-    pins.push(pin); addMarker(pin);
+    pins.push(pin);
   });
+  pins.forEach(pin=>addMarker(pin));
   renderPins(); updateStats();
 });
 db.ref('segments').on('value',snap=>{
@@ -1287,19 +1384,31 @@ db.ref('segments').on('value',snap=>{
   const data=snap.val()||{};
   Object.values(data).forEach(s=>segments.push(s));
   segments.sort((a,b)=>a.id.localeCompare(b.id));
+  // 新規区間はデフォルト表示
+  segments.forEach(s=>{ if(!(s.id in segVisible)) segVisible[s.id]=true; });
   renderSegs(); renderPins();
+  pins.forEach(p=>{ if(markers[p.id]) markers[p.id].setIcon(mkIcon(p)); });
+  // ルートのロード順問題：segmentsが来たら必ずルートも再描画
+  redrawAllRoutes();
+  renderRouteContent();
 });
 db.ref('routes').on('value',snap=>{
-  [1,2].forEach(day=>{ rMarkers[day].forEach(m=>map.removeLayer(m)); rMarkers[day]=[]; if(rPolylines[day]){map.removeLayer(rPolylines[day]);rPolylines[day]=null;} });
+  // 古いマーカーをクリア
+  Object.values(rPolylines).forEach(p=>{ if(p) map.removeLayer(p); });
+  rPolylines={};
+  Object.values(rMarkers).forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(m=>map.removeLayer(m)); });
+  rMarkers={};
   routes={1:[],2:[]};
   const data=snap.val()||{};
   [1,2].forEach(day=>{
     const dd=data['day'+day]||{};
     Object.values(dd).forEach(pt=>routes[day].push(pt));
     routes[day].sort((a,b)=>a.id.localeCompare(b.id));
-    redrawRoute(day);
   });
-  renderRouteContent();
+  // segmentsロード前の場合は少し待ってから描画
+  const draw=()=>{ redrawAllRoutes(); renderRouteContent(); };
+  if(segments.length===0) setTimeout(draw,800);
+  else draw();
 });
 
 /* ══ EXPORT / IMPORT ══ */
